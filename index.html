@@ -512,11 +512,29 @@ function animCount(el, target) {
     if (v >= target) clearInterval(t);
   }, 28);
 }
+// Ambil statistik nyata dari Supabase (RPC statistik). Jika gagal, pakai nilai cadangan.
+let statsData = null;
+const statsPromise = (async () => {
+  try {
+    const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/statistik', {
+      method: 'POST',
+      headers: {
+        'apikey':        SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Content-Type':  'application/json'
+      },
+      body: '{}'
+    });
+    if (res.ok) statsData = await res.json();
+  } catch (e) { /* biarkan pakai cadangan */ }
+})();
+
 const obs = new IntersectionObserver(e => {
-  e.forEach(x => { if(x.isIntersecting) {
-    animCount(document.getElementById('cnt-t'), 247);
-    animCount(document.getElementById('cnt-s'), 198);
+  e.forEach(async x => { if(x.isIntersecting) {
     obs.disconnect();
+    await statsPromise;
+    animCount(document.getElementById('cnt-t'), statsData?.total  ?? 247);
+    animCount(document.getElementById('cnt-s'), statsData?.terbit ?? 198);
   }});
 }, {threshold:.5});
 obs.observe(document.querySelector('.stats'));
