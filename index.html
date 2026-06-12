@@ -242,7 +242,7 @@ footer{background:#1a1a2e;padding:48px 52px 32px;}
 <div class="stats">
   <div class="stat"><div class="stat-n" id="cnt-t">0</div><div class="stat-l">Total Pengajuan SKPP</div></div>
   <div class="stat"><div class="stat-n" id="cnt-s">0</div><div class="stat-l">SKPP Telah Diterbitkan</div></div>
-  <div class="stat"><div class="stat-n">≤ 3</div><div class="stat-l">Hari Kerja Rata-rata Proses</div></div>
+  <div class="stat"><div class="stat-n" id="cnt-h">≤ 3</div><div class="stat-l">Hari Kerja Rata-rata Proses</div></div>
   <div class="stat"><div class="stat-n">24/7</div><div class="stat-l">Akses Pelacakan Daring</div></div>
 </div>
 
@@ -535,6 +535,10 @@ const obs = new IntersectionObserver(e => {
     await statsPromise;
     animCount(document.getElementById('cnt-t'), statsData?.total  ?? 247);
     animCount(document.getElementById('cnt-s'), statsData?.terbit ?? 198);
+    if (statsData && typeof statsData.rataHari === 'number') {
+      const h = statsData.rataHari;
+      document.getElementById('cnt-h').textContent = h < 1 ? '< 1' : String(h);
+    }
   }});
 }, {threshold:.5});
 obs.observe(document.querySelector('.stats'));
