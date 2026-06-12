@@ -430,7 +430,10 @@ footer{background:#1a1a2e;padding:48px 52px 32px;}
 
 <script>
 // ── KONFIGURASI ──────────────────────────────────────────────
-const API_URL = "https://script.google.com/macros/s/AKfycbxdSGg9F6P4FpNJsr3jhVklVKTqxFjepQbs4mHblDDv2ySMXD8nkZfrhMcEgz8IcPOoeA/exec";
+// Database: Supabase (RPC function "lacak"). Kunci di bawah adalah
+// anon/publishable key — aman dipublikasikan di halaman statis.
+const SUPABASE_URL = "https://phxyrferpnylgbbghgsn.supabase.co";
+const SUPABASE_KEY = "sb_publishable_jqC1ntXlQai4j2X_e9x1vg_VZ0E6nBy";
 
 const TAHAPAN_A = [
   {id:"A1",label:"Berkas Diterima di Loket",pelaksana:"Staf Loket"},
@@ -556,18 +559,23 @@ async function doLacak() {
   document.getElementById('lacak').scrollIntoView({behavior:'smooth', block:'start'});
 
   try {
-    const url = new URL(API_URL);
-    url.searchParams.set('action', 'lacak');
-    url.searchParams.set('id',     nomor);
-    url.searchParams.set('kode',   kode);
-    const res  = await fetch(url.toString());
+    const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/lacak', {
+      method: 'POST',
+      headers: {
+        'apikey':        SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Content-Type':  'application/json'
+      },
+      body: JSON.stringify({ p_id: nomor, p_kode: kode })
+    });
     const data = await res.json();
     hide('loadingBox');
 
-    if (data.ok) {
-      renderResult(normP(data.data));
+    // RPC mengembalikan objek pengajuan bila nomor + kode cocok, atau null bila tidak.
+    if (res.ok && data && !data.message) {
+      renderResult(normP(data));
     } else {
-      document.getElementById('errorMsg').textContent = data.pesan ||
+      document.getElementById('errorMsg').textContent =
         'Nomor pengajuan atau kode akses tidak valid. Periksa kembali tanda terima Anda.';
       show('errorBox');
     }
