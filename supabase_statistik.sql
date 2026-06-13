@@ -5,7 +5,7 @@
 --  jadi aman dipanggil anon. SECURITY DEFINER -> menembus RLS.
 --
 --  total    : jumlah seluruh pengajuan.
---  terbit   : status='selesai' ATAU semua tahap selesai (A=7, B=11).
+--  terbit   : status='selesai' ATAU semua tahap selesai (A=6, B=10).
 --  rataHari : rata-rata lama proses dalam HARI KERJA (Senin–Jumat,
 --             tanpa Sabtu/Minggu) dari riwayat pertama s/d terakhir
 --             tiap SKPP yang sudah terbit, dibulatkan.
@@ -26,7 +26,7 @@ as $$
     where p.status = 'selesai'
        or coalesce(
             cardinality(string_to_array(nullif(trim(p."tahapSelesai"), ''), ',')), 0
-          ) >= case when p.jalur = 'A' then 7 else 11 end
+          ) >= case when p.jalur = 'A' then 6 else 10 end
   ),
   rentang as (
     select r."pengajuanId" as id,
