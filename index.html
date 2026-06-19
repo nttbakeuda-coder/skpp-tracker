@@ -572,6 +572,41 @@ function getProgress(p) {
   return Math.round((p.tahapSelesai.length / tahapan.length) * 100);
 }
 
+function escHtml(s) {
+  return String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+}
+// Ubah tanggal ISO (2026-06-20) jadi "20 Jun 2026".
+function fmtTgl(s) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s||'');
+  if (!m) return s||'';
+  const bln = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+  return `${+m[3]} ${bln[+m[2]-1]} ${m[1]}`;
+}
+// Catatan pengembalian dari dashboard tersimpan sebagai JSON "Formulir Kembali".
+// Di modul pelacakan cukup tampilkan ALASAN pengembalian, bukan seluruh formulir.
+function formatCatatan(raw) {
+  if (!raw) return '';
+  let d = null;
+  try { d = JSON.parse(raw); } catch (e) { return escHtml(raw); }
+  if (!d || d._type !== 'FORMULIR_KEMBALI') return escHtml(raw);
+  let html = '<strong>Berkas dikembalikan untuk dilengkapi.</strong>';
+  const alasan = [];
+  if (d.alasan && d.alasan.dokumen) alasan.push('Dokumen persyaratan belum lengkap');
+  if (d.alasan && d.alasan.hutang)  alasan.push('Terdapat hutang/kewajiban finansial yang belum diselesaikan');
+  if (alasan.length) html += '<br>Alasan: ' + escHtml(alasan.join('; ')) + '.';
+  const docs = (d.rincian || []).filter(r => r && r.dokumen);
+  if (docs.length) {
+    html += '<br>Dokumen yang perlu dilengkapi:';
+    html += docs.map(r => `<br>• ${escHtml(r.dokumen)}${r.batas ? ` (paling lambat ${escHtml(fmtTgl(r.batas))})` : ''}`).join('');
+  }
+  const hut = (d.rincianHutang || []).filter(r => r && r.jenis);
+  if (hut.length) {
+    html += '<br>Kewajiban yang harus diselesaikan:';
+    html += hut.map(r => `<br>• ${escHtml(r.jenis)}${r.batas ? ` (paling lambat ${escHtml(fmtTgl(r.batas))})` : ''}`).join('');
+  }
+  return html;
+}
+
 async function doLacak() {
   const nomor = document.getElementById('inputNomor').value.trim();
   const kode  = document.getElementById('inputKode').value.trim();
@@ -665,7 +700,7 @@ function renderResult(p) {
 
   // Alert dikembalikan
   if (p.status==='kembali' && p.catatan) {
-    document.getElementById('resKembaliMsg').textContent = p.catatan;
+    document.getElementById('resKembaliMsg').innerHTML = formatCatatan(p.catatan);
     show('resAlertKembali');
   } else hide('resAlertKembali');
 
@@ -702,7 +737,7 @@ function renderResult(p) {
         </div>
         <div class="tl-sub">${step.pelaksana}</div>
         ${log ? `<div class="tl-time">${log.waktu||''}</div>` : ''}
-        ${log && log.catatan ? `<div class="tl-note ${isRet?'r':''}">${isRet?'⚠ ':''}${log.catatan}</div>` : ''}
+        ${log && log.catatan ? `<div class="tl-note ${isRet?'r':''}">${isRet?'⚠ ':''}${formatCatatan(log.catatan)}</div>` : ''}
       </div>
     `;
     tlWrap.appendChild(item);
