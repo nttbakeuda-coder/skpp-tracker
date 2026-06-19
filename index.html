@@ -715,14 +715,19 @@ function renderResult(p) {
     const isDone   = p.tahapSelesai.includes(step.id);
     const isAktif  = p.tahapAktif === step.id;
     const isLast   = idx === tahapan.length - 1;
-    const log      = p.riwayat.find(r => r.tahap === step.id);
-    const isRet    = log && (log.isKembali===true || log.isKembali==='TRUE');
+    // Ambil catatan TERBARU untuk tahap ini, bukan yang pertama. Tahap yang sempat
+    // dikembalikan lalu dilanjutkan punya beberapa entri Riwayat; entri terakhir
+    // mencerminkan status akhirnya — selaras dengan dashboard internal.
+    const logs     = p.riwayat.filter(r => r.tahap === step.id);
+    const log      = logs.length ? logs[logs.length - 1] : null;
+    // Tahap ditandai "dikembalikan" HANYA bila tahap ini sedang aktif & pengajuan
+    // berstatus kembali. Tahap yang sudah selesai selalu tampil ✓ (sama spt dashboard).
+    const isRet    = !isDone && isAktif && p.status === 'kembali';
 
-    let dotCls = 'w';
-    if (isDone) dotCls = isRet ? 'r' : 'd';
-    else if (isAktif) dotCls = 'a';
-
-    const dotIcon = isDone && !isRet ? '✓' : isRet ? '↩' : isAktif ? '→' : '○';
+    let dotCls = 'w', dotIcon = '○';
+    if (isDone)       { dotCls = 'd'; dotIcon = '✓'; }
+    else if (isRet)   { dotCls = 'r'; dotIcon = '↩'; }
+    else if (isAktif) { dotCls = 'a'; dotIcon = '→'; }
 
     const item = document.createElement('div');
     item.className = 'tl-item';

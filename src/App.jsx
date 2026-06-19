@@ -236,24 +236,28 @@ export default function App() {
                   {(result.jalur === "A" ? TAHAPAN_A : TAHAPAN_B).map((step, idx, arr) => {
                     const isDone = result.tahapSelesai.includes(step.id);
                     const isActive = result.tahapAktif === step.id;
-                    const log = result.riwayat.find(r => r.tahap === step.id);
-                    const isRet = log?.isKembali === true || log?.isKembali === "TRUE";
+                    const logs = result.riwayat.filter(r => r.tahap === step.id);
+                    const log = logs.find(r => r.isKembali === true || r.isKembali === "TRUE") || logs[0];
+                    const pernahRet = logs.some(r => r.isKembali === true || r.isKembali === "TRUE");
+                    // Tampilkan "dikembalikan" hanya selama tahap belum selesai.
+                    const retNow = pernahRet && !isDone;
                     let dot = "pending";
-                    if (isDone) dot = isRet ? "returned" : "done";
+                    if (isDone) dot = "done";
+                    else if (retNow) dot = "returned";
                     else if (isActive) dot = "active";
 
                     return (
                       <div key={step.id} className="timeline-item">
                         <div className="timeline-left">
                           <div className={`timeline-dot ${dot}`}>
-                            {isDone && !isRet ? "✓" : isRet ? "↩" : step.icon}
+                            {isDone ? "✓" : retNow ? "↩" : step.icon}
                           </div>
-                          {idx !== arr.length - 1 && <div className={`timeline-line ${isDone && !isRet ? "done" : ""}`} />}
+                          {idx !== arr.length - 1 && <div className={`timeline-line ${isDone ? "done" : ""}`} />}
                         </div>
                         <div className="timeline-content" style={{ paddingBottom: idx === arr.length - 1 ? 0 : 24 }}>
                           <div className={`timeline-title ${!isDone && !isActive ? "pending" : ""}`}>{step.label}</div>
                           <div className="timeline-subtitle">{step.pelaksana}</div>
-                          {log?.catatan && <div className={`timeline-note ${isRet ? "ret" : ""}`}>{bacaCatatan(log.catatan)}</div>}
+                          {log?.catatan && <div className={`timeline-note ${retNow ? "ret" : ""}`}>{bacaCatatan(log.catatan)}</div>}
                         </div>
                       </div>
                     );
