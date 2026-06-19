@@ -141,8 +141,9 @@ section{padding:92px 52px;}
 .tl-line.d{background:#059669;}
 .tl-content{flex:1;}
 .tl-title{font-size:13px;font-weight:700;color:var(--g800);margin-bottom:2px;}
-.tl-title.w{color:var(--g400);}
+.tl-title.w{color:rgba(108,117,125,.5);}
 .tl-sub{font-size:11px;color:var(--g500);margin-bottom:3px;}
+.tl-sub.w{color:rgba(108,117,125,.42);}
 .tl-time{font-size:10px;color:var(--g400);font-family:monospace;}
 .tl-note{background:var(--g50);border:1px solid var(--g200);border-radius:6px;padding:6px 10px;font-size:11px;color:var(--g600);margin-top:5px;}
 .tl-note.r{background:#fffbeb;border-color:#fde68a;color:#92400e;}
@@ -740,7 +741,7 @@ function renderResult(p) {
         <div class="tl-title ${!isDone&&!isAktif?'w':''}">${step.label}
           ${isAktif&&!isDone ? '<span style="display:inline-flex;align-items:center;gap:4px;background:#dbeafe;color:#1d4ed8;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;margin-left:6px;">Aktif</span>' : ''}
         </div>
-        <div class="tl-sub">${step.pelaksana}</div>
+        <div class="tl-sub ${!isDone&&!isAktif?'w':''}">${step.pelaksana}</div>
         ${log ? `<div class="tl-time">${log.waktu||''}</div>` : ''}
         ${log && log.catatan ? `<div class="tl-note ${isRet?'r':''}">${isRet?'⚠ ':''}${formatCatatan(log.catatan)}</div>` : ''}
       </div>
