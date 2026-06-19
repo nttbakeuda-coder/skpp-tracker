@@ -252,7 +252,7 @@ footer{background:#1a1a2e;padding:48px 52px 32px;}
     <div class="s-tag">Pelacakan Status Pengajuan</div>
     <h2 class="s-h2">Cek Status <em>Pengajuan SKPP</em> Anda</h2>
     <p class="s-p" style="max-width:100%;margin-bottom:28px;">
-      Masukkan Nomor Pengajuan dan Kode Akses yang tertera pada <strong>Tanda Terima Pengajuan</strong>
+      Masukkan Nomor Pengajuan <strong>atau NIP</strong>, beserta Kode Akses yang tertera pada <strong>Tanda Terima Pengajuan</strong>
       yang diberikan oleh petugas loket Bidang Perbendaharaan.
     </p>
 
@@ -260,9 +260,9 @@ footer{background:#1a1a2e;padding:48px 52px 32px;}
     <div class="search-form">
       <div class="search-row">
         <div class="search-group">
-          <label class="search-label">Nomor Pengajuan</label>
+          <label class="search-label">Nomor Pengajuan / NIP</label>
           <input type="text" id="inputNomor" class="search-field"
-            placeholder="Contoh: SKPP-2025-0042"
+            placeholder="Nomor Pengajuan atau NIP"
             onkeydown="if(event.key==='Enter') doLacak()"/>
         </div>
         <div class="search-group" style="max-width:180px;">
@@ -279,7 +279,7 @@ footer{background:#1a1a2e;padding:48px 52px 32px;}
     </div>
 
     <div class="search-hint">
-      ℹ️ Nomor Pengajuan dan Kode Akses tercantum pada <strong>Tanda Terima</strong> yang diberikan petugas loket saat berkas didaftarkan.
+      ℹ️ Nomor Pengajuan dan Kode Akses tercantum pada <strong>Tanda Terima</strong> yang diberikan petugas loket saat berkas didaftarkan. Anda juga dapat mencari menggunakan <strong>NIP</strong> beserta Kode Akses.
     </div>
 
     <!-- LOADING -->
@@ -640,7 +640,7 @@ async function doLacak() {
       renderResult(normP(data));
     } else {
       document.getElementById('errorMsg').textContent =
-        'Nomor pengajuan atau kode akses tidak valid. Periksa kembali tanda terima Anda.';
+        'Nomor pengajuan/NIP atau kode akses tidak valid. Periksa kembali tanda terima Anda.';
       show('errorBox');
     }
   } catch(e) {

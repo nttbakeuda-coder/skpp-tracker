@@ -1,8 +1,10 @@
 -- ============================================================
 --  RPC: lacak(p_id, p_kode)
 --  Dipakai oleh modul pelacakan publik (sipasti.my.id / index.html).
---  Mengembalikan satu objek pengajuan HANYA jika nomor pengajuan
---  DAN kode akses cocok. Jika tidak cocok -> NULL.
+--  p_id boleh berupa NOMOR PENGAJUAN atau NIP. Mengembalikan satu objek
+--  pengajuan HANYA jika (nomor ATAU nip) DAN kode akses cocok; jika tidak
+--  cocok -> NULL. Bila satu NIP punya beberapa pengajuan dgn kode yang sama,
+--  diambil yang terbaru.
 --
 --  SECURITY DEFINER: fungsi tetap bisa membaca tabel walau RLS aktif,
 --  sehingga tabel mentah tidak perlu diekspos ke anon.
@@ -50,8 +52,12 @@ as $$
     )
   )
   from public."Pengajuan" p
-  where upper(trim(p.id))          = upper(trim(p_id))
+  where (
+          upper(trim(p.id)) = upper(trim(p_id))
+          or (trim(p_id) ~ '^\d+$' and p.nip::text = trim(p_id))
+        )
     and upper(trim(p."kodeAkses")) = upper(trim(p_kode))
+  order by p.id desc
   limit 1;
 $$;
 
