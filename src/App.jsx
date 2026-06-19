@@ -1,38 +1,64 @@
 import { useState } from "react";
 
-const API_URL = "https://script.google.com/macros/s/AKfycbxdSGg9F6P4FpNJsr3jhVklVKTqxFjepQbs4mHblDDv2ySMXD8nkZfrhMcEgz8IcPOoeA/exec";
+// Sumber data: Supabase (sama dengan dashboard admin). Portal hanya MEMBACA
+// (anon key + kebijakan "public read" RLS). Pencarian via Nomor Pengajuan / Kode Akses.
+const SUPABASE_URL = "https://phxyrferpnylgbbghgsn.supabase.co";
+const SUPABASE_KEY = "sb_publishable_jqC1ntXlQai4j2X_e9x1vg_VZ0E6nBy";
+const SB_HEADERS = { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY };
 
 const JALUR = { A: "Jalur A – Tanpa Pangkat Pengabdian", B: "Jalur B – Ada Pangkat Pengabdian" };
 
+// Tahapan disamakan persis dengan dashboard (ID & label terbaru).
 const TAHAPAN_A = [
-  { id: "A1", label: "Berkas Diterima di Loket", icon: "📥", pelaksana: "Staf Pengampuh OPD" },
-  { id: "A2", label: "Verifikasi Kelengkapan Berkas", icon: "🔍", pelaksana: "Staf Pengampuh OPD" },
-  { id: "A3", label: "Verifikasi Data PNS", icon: "👤", pelaksana: "Staf Pengampuh OPD" },
+  { id: "A1", label: "Berkas Diterima di Loket", icon: "📥", pelaksana: "Staf Loket" },
+  { id: "A2", label: "Verifikasi Kelengkapan Berkas", icon: "🔍", pelaksana: "Staf Pengampu OPD" },
   { id: "A4", label: "Pembuatan Draft SKPP", icon: "📝", pelaksana: "Penyusun SKPP" },
-  { id: "A5", label: "Pemeriksaan & Paraf Kasubid", icon: "✅", pelaksana: "Staf Pengampuh OPD → Kasubid" },
-  { id: "A6", label: "Penempelan Foto & Penomoran", icon: "📸", pelaksana: "Staf Bidang Perbendaharaan" },
-  { id: "A7", label: "SKPP Siap Diserahkan", icon: "🎉", pelaksana: "Staf Pengampuh OPD", final: true },
+  { id: "A5", label: "Verifikasi & Proses Tanda Tangan Pimpinan", icon: "✅", pelaksana: "Staf Pengampu OPD → Kasubid → Kuasa BUD" },
+  { id: "A6", label: "Penempelan Foto & Penomoran", icon: "📸", pelaksana: "Staf Loket" },
+  { id: "A7", label: "SKPP Siap Diserahkan", icon: "🎉", pelaksana: "Staf Loket", final: true },
 ];
 
 const TAHAPAN_B = [
-  { id: "B1", label: "Berkas Diterima di Loket", icon: "📥", pelaksana: "Staf Pengampuh OPD" },
-  { id: "B2", label: "Verifikasi Kelengkapan Berkas", icon: "🔍", pelaksana: "Staf Pengampuh OPD" },
-  { id: "B3", label: "Identifikasi Pangkat Pengabdian", icon: "🏅", pelaksana: "Staf Pengampuh OPD" },
-  { id: "B4", label: "Perhitungan Kekurangan (SIMgaji)", icon: "🖥️", pelaksana: "Operator SIMgaji" },
-  { id: "B5", label: "Rincian Kekurangan → Bendahara OPD", icon: "📤", pelaksana: "Operator SIMgaji / Staf Pengampuh" },
-  { id: "B6", label: "SPP-SPM Diterima dari OPD", icon: "📋", pelaksana: "Staf Bidang Perbendaharaan" },
-  { id: "B7", label: "Proses SP2D Kekurangan Pangkat", icon: "💳", pelaksana: "Staf Bidang Perbendaharaan" },
-  { id: "B8", label: "Pembuatan Draft SKPP", icon: "📝", pelaksana: "Penyusun SKPP" },
-  { id: "B9", label: "Pemeriksaan & Paraf Kasubid", icon: "✅", pelaksana: "Staf Pengampuh OPD → Kasubid" },
-  { id: "B10", label: "Penempelan Foto & Penomoran", icon: "📸", pelaksana: "Staf Bidang Perbendaharaan" },
-  { id: "B11", label: "SKPP Siap Diserahkan", icon: "🎉", pelaksana: "Staf Pengampuh OPD", final: true },
+  { id: "B1", label: "Berkas Diterima di Loket", icon: "📥", pelaksana: "Staf Loket" },
+  { id: "B2", label: "Verifikasi Kelengkapan Berkas", icon: "🔍", pelaksana: "Staf Pengampu OPD" },
+  { id: "B4", label: "Perhitungan Kekurangan (SIMgaji)", icon: "🖥️", pelaksana: "Staf Pengampu OPD" },
+  { id: "B5", label: "Rincian Perhitungan Kekurangan Pembayaran Pangkat Pengabdian diserahkan ke Bendahara OPD", icon: "📤", pelaksana: "Staf Pengampu OPD" },
+  { id: "B6", label: "SPP-SPM Diterima dari OPD", icon: "📋", pelaksana: "Staf Perbendaharaan" },
+  { id: "B7", label: "Proses SP2D Kekurangan Pembayaran Pangkat Pengabdian", icon: "💳", pelaksana: "Staf Perbendaharaan" },
+  { id: "B8", label: "Pembuatan Draft SKPP", icon: "📝", pelaksana: "Staf Perbendaharaan" },
+  { id: "B9", label: "Verifikasi & Proses Tanda Tangan Pimpinan", icon: "✅", pelaksana: "Staf Pengampu OPD → Kasubid → Kuasa BUD" },
+  { id: "B10", label: "Penempelan Foto & Penomoran", icon: "📸", pelaksana: "Staf Loket" },
+  { id: "B11", label: "SKPP Siap Diserahkan", icon: "🎉", pelaksana: "Staf Loket", final: true },
 ];
 
-async function apiGet(params) {
-  const url = new URL(API_URL);
-  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
-  const res = await fetch(url.toString());
-  return res.json();
+// Lacak satu pengajuan dari Supabase berdasarkan Nomor Pengajuan (id) atau Kode Akses.
+async function lacakSupabase(query) {
+  const q = encodeURIComponent(query);
+  const url = `${SUPABASE_URL}/rest/v1/Pengajuan?or=(id.ilike.${q},kodeAkses.ilike.${q})&select=*`;
+  const res = await fetch(url, { headers: SB_HEADERS });
+  if (!res.ok) return { ok: false, pesan: "Gagal terhubung ke server." };
+  const rows = await res.json();
+  if (!Array.isArray(rows) || rows.length === 0)
+    return { ok: false, pesan: "Data tidak ditemukan. Periksa Nomor Pengajuan atau Kode Akses Anda." };
+  const p = rows[0];
+  const rurl = `${SUPABASE_URL}/rest/v1/Riwayat?pengajuanId=eq.${encodeURIComponent(p.id)}&select=*&order=waktu.asc`;
+  const rres = await fetch(rurl, { headers: SB_HEADERS });
+  const riwayat = rres.ok ? await rres.json() : [];
+  return { ok: true, data: { ...p, riwayat: Array.isArray(riwayat) ? riwayat : [] } };
+}
+
+// Ubah catatan Formulir Pengembalian (JSON) menjadi teks yang mudah dibaca warga.
+function bacaCatatan(str) {
+  if (!str) return "";
+  let o = null;
+  try { o = JSON.parse(str); } catch { return str; }
+  if (!o || o._type !== "FORMULIR_KEMBALI") return str;
+  const parts = [];
+  const dok = (o.rincian || []).filter((r) => r.dokumen);
+  if (dok.length) parts.push("Dokumen yang harus dilengkapi: " + dok.map((r) => r.dokumen + (r.tindakan ? ` (${r.tindakan})` : "")).join("; "));
+  const hut = (o.rincianHutang || []).filter((r) => r.jenis);
+  if (hut.length) parts.push("Hutang/kewajiban yang harus diselesaikan: " + hut.map((r) => r.jenis).join("; "));
+  return parts.join(" — ") || "Berkas dikembalikan untuk dilengkapi.";
 }
 
 function getProgress(p) {
@@ -59,7 +85,7 @@ export default function App() {
     if (!query.trim()) return;
     setLoading(true); setErr(""); setResult(null);
     try {
-      const res = await apiGet({ action: "lacak", query: query.trim() });
+      const res = await lacakSupabase(query.trim());
       if (res.ok) setResult(normalizeP(res.data));
       else setErr(res.pesan || "Data tidak ditemukan.");
     } catch {
@@ -187,12 +213,16 @@ export default function App() {
               </div>
             </div>
 
-            {result.status === "kembali" && result.catatan && (
-              <div className="alert alert-amber">
-                <span>⚠️</span>
-                <div><strong>Berkas Perlu Dilengkapi:</strong><br />{result.catatan}</div>
-              </div>
-            )}
+            {result.status === "kembali" && (() => {
+              const retLog = [...result.riwayat].reverse().find((r) => r.isKembali === true || r.isKembali === "TRUE");
+              const pesan = bacaCatatan(retLog?.catatan);
+              return pesan ? (
+                <div className="alert alert-amber">
+                  <span>⚠️</span>
+                  <div><strong>Berkas Perlu Dilengkapi:</strong><br />{pesan}</div>
+                </div>
+              ) : null;
+            })()}
 
             <div className="card">
               <div className="card-header">
@@ -223,7 +253,7 @@ export default function App() {
                         <div className="timeline-content" style={{ paddingBottom: idx === arr.length - 1 ? 0 : 24 }}>
                           <div className={`timeline-title ${!isDone && !isActive ? "pending" : ""}`}>{step.label}</div>
                           <div className="timeline-subtitle">{step.pelaksana}</div>
-                          {log?.catatan && <div className={`timeline-note ${isRet ? "ret" : ""}`}>{log.catatan}</div>}
+                          {log?.catatan && <div className={`timeline-note ${isRet ? "ret" : ""}`}>{bacaCatatan(log.catatan)}</div>}
                         </div>
                       </div>
                     );
