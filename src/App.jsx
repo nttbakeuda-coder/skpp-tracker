@@ -58,6 +58,13 @@ function bacaCatatan(str) {
   if (dok.length) parts.push("Dokumen yang harus dilengkapi: " + dok.map((r) => r.dokumen + (r.tindakan ? ` (${r.tindakan})` : "")).join("; "));
   const hut = (o.rincianHutang || []).filter((r) => r.jenis);
   if (hut.length) parts.push("Hutang/kewajiban yang harus diselesaikan: " + hut.map((r) => r.jenis).join("; "));
+  if (o.alasan && o.alasan.hutang) {
+    const mek = o.mekanisme || {};
+    if (mek.penghitung === "pengampu" && mek.jumlah)
+      parts.push("Nominal hutang yang harus diselesaikan: Rp " + Number(mek.jumlah).toLocaleString("id-ID"));
+    else if (mek.penghitung === "bendahara")
+      parts.push("Nominal hutang dihitung oleh Bendahara OPD. Silakan hubungi Bendahara OPD");
+  }
   return parts.join(" — ") || "Berkas dikembalikan untuk dilengkapi.";
 }
 

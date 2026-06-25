@@ -605,6 +605,16 @@ function formatCatatan(raw) {
     html += '<br>Kewajiban yang harus diselesaikan:';
     html += hut.map(r => `<br>• ${escHtml(r.jenis)}${r.batas ? ` (paling lambat ${escHtml(fmtTgl(r.batas))})` : ''}`).join('');
   }
+  // Nominal hutang: jika dihitung Staf Pengampu OPD tampilkan angkanya;
+  // jika dihitung Bendahara OPD arahkan pemohon menghubungi Bendahara OPD.
+  if (d.alasan && d.alasan.hutang) {
+    const mek = d.mekanisme || {};
+    if (mek.penghitung === 'pengampu' && mek.jumlah) {
+      html += `<br>Nominal hutang yang harus diselesaikan: <strong>Rp ${escHtml(Number(mek.jumlah).toLocaleString('id-ID'))}</strong>.`;
+    } else if (mek.penghitung === 'bendahara') {
+      html += '<br>Nominal hutang dihitung oleh Bendahara OPD. Silakan hubungi Bendahara OPD.';
+    }
+  }
   return html;
 }
 
