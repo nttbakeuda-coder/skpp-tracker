@@ -66,6 +66,10 @@ export function AuthProvider({ children }) {
         password,
         options: {
           captchaToken: captchaToken || undefined,
+          // Setelah klik tautan verifikasi, kembalikan ke aplikasi (origin yang
+          // sama saat mendaftar). URL ini WAJIB terdaftar di Supabase Auth →
+          // URL Configuration → Redirect URLs, jika tidak Supabase memakai Site URL.
+          emailRedirectTo: window.location.origin + "/masuk",
           data: { role, nama, username: nip, opd },
         },
       });

@@ -12,6 +12,10 @@ export default function Masuk() {
   const [captcha, setCaptcha] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  // Tandai jika halaman ini dibuka dari tautan verifikasi email Supabase.
+  const [verified] = useState(
+    () => typeof window !== "undefined" && /(?:type=signup|access_token)/.test(window.location.hash)
+  );
 
   useEffect(() => {
     if (isLoggedIn) nav("/pengajuan-saya", { replace: true });
@@ -50,6 +54,13 @@ export default function Masuk() {
           <p className="portal-sub">
             Masuk untuk mengajukan SKPP secara daring dan memantau pengajuan Anda.
           </p>
+
+          {verified && !err && (
+            <div className="p-alert p-alert-ok">
+              <span>✅</span>
+              <div>Email terverifikasi. Silakan masuk. Akun menunggu persetujuan admin sebelum dapat mengajukan.</div>
+            </div>
+          )}
 
           {err && (
             <div className="p-alert p-alert-err">
