@@ -95,6 +95,49 @@ export const DAFTAR_DOKUMEN_SKPP = [
   "Lainnya",
 ];
 
+// ── Daftar Periksa Persyaratan Berkas (Lampiran 1) ──────────────
+// Disalin dari dashboard admin (DP_DOKUMEN_GRUP). Dikelompokkan; grup umum wajib
+// untuk semua jenis, grup lain muncul sesuai Keperluan SKPP (lihat dpGrupTampil).
+export const DP_DOKUMEN_GRUP = [
+  { grup: "I. DOKUMEN UMUM (WAJIB UNTUK SEMUA JENIS SKPP)", items: [
+    { t: "Fotokopi KTP Pegawai yang Bersangkutan" },
+    { t: "Fotokopi Kartu Keluarga yang masih berlaku" },
+    { t: "Surat Pernyataan Bebas Hutang dari Bendahara Gaji OPD (bermaterai)" },
+    { t: "Pas foto terbaru ukuran 4×6 berlatar merah/biru sebanyak 3 (tiga) lembar" },
+  ] },
+  { grup: "II. DOKUMEN TAMBAHAN — PENSIUN (BUP / APS / CACAT / MENINGGAL)", items: [
+    { t: "SK Pensiun / Persetujuan Pensiun yang telah ditetapkan oleh BKN / Pejabat Pembina Kepegawaian" },
+    { t: "Fotokopi Surat Keputusan Kenaikan Pangkat Pengabdian (jika ada dan belum berlaku pada tanggal pensiun)", ket: "Jalur B" },
+    { t: "Fotokopi Kartu Taspen" },
+    { t: "Fotokopi Akta Perkawinan / Buku Nikah (jika ada tanggungan suami/istri)", ket: "Jika berlaku" },
+    { t: "Fotokopi Akta Kelahiran anak yang masih menjadi tanggungan (usia < 25 tahun / belum bekerja)", ket: "Jika berlaku" },
+  ] },
+  { grup: "III. DOKUMEN TAMBAHAN — PINDAH / MUTASI", items: [
+    { t: "SK Pindah / Mutasi dari instansi yang berwenang" },
+    { t: "Surat Pernyataan Melaksanakan Tugas (SPMT) di instansi tujuan" },
+    { t: "Surat Keterangan Bebas Temuan dari Inspektorat (jika dipersyaratkan)", ket: "Jika berlaku" },
+  ] },
+  { grup: "IV. DOKUMEN TAMBAHAN — BERHENTI ATAS PERMINTAAN SENDIRI (APS)", items: [
+    { t: "SK Pemberhentian yang telah ditetapkan oleh pejabat berwenang" },
+    { t: "Surat Pernyataan Tidak Menuntut Hak atas Pensiun (jika APS sebelum BUP)", ket: "Jika berlaku" },
+  ] },
+  { grup: "V. DOKUMEN TAMBAHAN — JANDA / DUDA", items: [
+    { t: "Akta Kematian Pegawai yang bersangkutan (asli atau dilegalisir)" },
+    { t: "Fotokopi Akta Perkawinan / Buku Nikah (dilegalisir)" },
+    { t: "Fotokopi KTP Janda/Duda yang masih berlaku" },
+  ] },
+];
+
+// Grup mana yang relevan untuk sebuah Keperluan SKPP (grup 0/umum selalu tampil).
+export function dpGrupTampil(alasan) {
+  const al = alasan || "";
+  const isJD = al.includes("Janda") || al.includes("Duda") || al.includes("Meninggal");
+  const isBH = al.includes("Berhenti") || al.includes("Pemberhentian");
+  const isPD = al.includes("Pindah");
+  const isPS = al.includes("Pensiun") && !isJD;
+  return [true, isPS, isPD, isBH, isJD];
+}
+
 // Batas unggah berkas (selaras kebijakan Fase 1 & setelan bucket).
 export const BERKAS_MAX_MB = 5;
 export const BERKAS_MAX_FILES = 15;

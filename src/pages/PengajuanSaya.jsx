@@ -2,7 +2,7 @@ import { Fragment, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth.jsx";
 import { listPengajuanSaya, uploadBerkas } from "../portal.js";
-import { BerkasPicker } from "../components/BerkasPicker.jsx";
+import { BerkasPersyaratan } from "../components/BerkasPersyaratan.jsx";
 
 function StatusBadge({ status }) {
   if (status === "selesai") return <span className="badge-selesai">✓ Selesai</span>;
@@ -122,7 +122,7 @@ export default function PengajuanSaya() {
                               <div style={{ fontSize: 12, fontWeight: 700, color: "var(--g600)", marginBottom: 8 }}>
                                 Unggah berkas untuk {r.id}
                               </div>
-                              <BerkasPicker files={files} setFiles={setFiles} />
+                              <BerkasPersyaratan alasan={r.alasan} files={files} setFiles={setFiles} />
                               {uploadMsg && <div className="p-alert p-alert-ok" style={{ marginTop: 8 }}><span>✅</span><div>{uploadMsg}</div></div>}
                               <button
                                 className="btn btn-primary btn-sm"

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth.jsx";
 import { ajukanPengajuan, uploadBerkas } from "../portal.js";
 import { DAFTAR_OPD, DAFTAR_KEPERLUAN, pangkatUntukStatus } from "../refdata.js";
-import { BerkasPicker } from "../components/BerkasPicker.jsx";
+import { BerkasPersyaratan } from "../components/BerkasPersyaratan.jsx";
 
 // Kolom pangkat sesuai jenis ASN (jenisASN hanya transien — tidak dikirim ke RPC).
 function PangkatField({ jenisASN, value, onJenis, onPangkat }) {
@@ -236,7 +236,7 @@ export default function Ajukan() {
                   {DAFTAR_OPD.map((o) => <option key={o} value={o}>{o}</option>)}
                 </select>
               </div>
-              <div className="field"><label>Jabatan Terakhir</label><input value={f.jabatan} onChange={(e) => set("jabatan", e.target.value)} placeholder="Opsional" /></div>
+              <div className="field"><label>Jabatan Terakhir</label><input value={f.jabatan} onChange={(e) => set("jabatan", e.target.value)} placeholder="Jabatan terakhir sesuai SK" /></div>
               <PangkatField
                 jenisASN={f.jenisASN}
                 value={f.pangkat}
@@ -252,7 +252,7 @@ export default function Ajukan() {
 
               <div className="field">
                 <label>Berkas Persyaratan</label>
-                <BerkasPicker files={files} setFiles={setFiles} />
+                <BerkasPersyaratan alasan={f.alasan} files={files} setFiles={setFiles} />
               </div>
 
               <button className="btn btn-primary btn-block" disabled={busy} onClick={submitTunggal}>
@@ -287,7 +287,7 @@ export default function Ajukan() {
                   <div className="p-grid2">
                     <div className="field" style={{ marginBottom: 8 }}><label>Nama *</label><input value={it.nama} onChange={(e) => setItem(it._id, "nama", e.target.value)} placeholder="Sesuai SK" /></div>
                     <div className="field" style={{ marginBottom: 8 }}><label>NIP *</label><input value={it.nip} onChange={(e) => setItem(it._id, "nip", e.target.value)} placeholder="18 digit" style={{ fontFamily: "monospace" }} /></div>
-                    <div className="field" style={{ marginBottom: 8 }}><label>Jabatan</label><input value={it.jabatan} onChange={(e) => setItem(it._id, "jabatan", e.target.value)} placeholder="Opsional" /></div>
+                    <div className="field" style={{ marginBottom: 8 }}><label>Jabatan</label><input value={it.jabatan} onChange={(e) => setItem(it._id, "jabatan", e.target.value)} placeholder="Jabatan terakhir sesuai SK" /></div>
                     <div className="field" style={{ marginBottom: 8 }}>
                       <label>Keperluan</label>
                       <select value={it.alasan} onChange={(e) => setItem(it._id, "alasan", e.target.value)}>
