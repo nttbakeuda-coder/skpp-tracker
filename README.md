@@ -43,8 +43,36 @@ npm run preview  # pratinjau hasil build
 npm run lint
 ```
 
-## Menguji ke staging
+## Portal Pengajuan Online
 
-Untuk menguji fitur "Pengajuan Online", aktifkan **sementara** konstanta staging
-di [`src/config.js`](src/config.js) (jangan commit dalam keadaan aktif). Skema
-Fase 0/1 sudah dijalankan di Supabase staging.
+Portal (login pemohon/bendahara + ajukan SKPP + berkas) digabung ke tracker ini
+memakai `@supabase/supabase-js` dan `react-router-dom`. Rute:
+
+| Rute | Halaman | Akses |
+| --- | --- | --- |
+| `/` | Beranda + Lacak | publik |
+| `/masuk`, `/daftar` | Login / Pendaftaran (email+verifikasi, peran, CAPTCHA opsional) | publik |
+| `/ajukan` | Form pengajuan (tunggal + bulk bendahara) + unggah berkas | login + akun `approved` |
+| `/pengajuan-saya` | Daftar pengajuan milik user + unggah berkas + lacak | login |
+
+Kontrak backend (repo `skpp-admin`, `supabase/draft-fase1`): signup mengirim
+metadata `{role, nama, username:NIP, opd}` → trigger buat profil `pending`;
+pengajuan lewat RPC `ajukan_pengajuan_online(p)` (server buat id + kodeAkses,
+`jalur` NULL — loket menetapkan); berkas ke bucket privat `berkas-pengajuan`
+lalu dicatat di `BerkasPengajuan`. Bulk = memanggil RPC per pegawai.
+
+## Konfigurasi (env)
+
+Aplikasi memakai PRODUKSI secara default. Buat `.env.local` (di-ignore git,
+lihat [.env.example](.env.example)) untuk mengarahkan ke **staging** saat menguji
+portal — skema Fase 0/1 sudah dijalankan di staging:
+
+```
+VITE_SUPABASE_URL=...            # staging
+VITE_SUPABASE_ANON_KEY=...       # staging (publishable, aman)
+VITE_TURNSTILE_SITE_KEY=...      # opsional; kosong = CAPTCHA dilewati
+```
+
+Prasyarat uji end-to-end di staging: aktifkan **Confirm email** (SMTP Resend) &
+**Turnstile** di Supabase Auth, lalu setujui akun (`profiles.akun_status='approved'`)
+sebelum bisa mengajukan.
