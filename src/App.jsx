@@ -1,280 +1,686 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import {
+  TAHAPAN_A,
+  TAHAPAN_B,
+  CAPTIONS,
+  HERO_SLIDES,
+  STAT_FALLBACK,
+  PROSEDUR,
+} from "./data.jsx";
+import { lacak, fetchStatistik, getProgress } from "./lacak.js";
+import { FormatCatatan } from "./FormatCatatan.jsx";
 
-// Sumber data: Supabase (sama dengan dashboard admin). Portal hanya MEMBACA
-// (anon key + kebijakan "public read" RLS). Pencarian via Nomor Pengajuan / Kode Akses.
-const SUPABASE_URL = "https://phxyrferpnylgbbghgsn.supabase.co";
-const SUPABASE_KEY = "sb_publishable_jqC1ntXlQai4j2X_e9x1vg_VZ0E6nBy";
-const SB_HEADERS = { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY };
-
-const JALUR = { A: "Jalur A – Tanpa Pangkat Pengabdian", B: "Jalur B – Ada Pangkat Pengabdian" };
-
-// Tahapan disamakan persis dengan dashboard (ID & label terbaru).
-const TAHAPAN_A = [
-  { id: "A1", label: "Berkas Diterima di Loket", icon: "📥", pelaksana: "Staf Loket" },
-  { id: "A2", label: "Verifikasi Kelengkapan Berkas", icon: "🔍", pelaksana: "Staf Pengampu OPD" },
-  { id: "A4", label: "Pembuatan Draft SKPP", icon: "📝", pelaksana: "Penyusun SKPP" },
-  { id: "A5", label: "Verifikasi & Proses Tanda Tangan Pimpinan", icon: "✅", pelaksana: "Staf Pengampu OPD → Kasubid → Kuasa BUD" },
-  { id: "A6", label: "Penempelan Foto & Penomoran", icon: "📸", pelaksana: "Staf Loket" },
-  { id: "A7", label: "SKPP Siap Diserahkan", icon: "🎉", pelaksana: "Staf Loket", final: true },
-];
-
-const TAHAPAN_B = [
-  { id: "B1", label: "Berkas Diterima di Loket", icon: "📥", pelaksana: "Staf Loket" },
-  { id: "B2", label: "Verifikasi Kelengkapan Berkas", icon: "🔍", pelaksana: "Staf Pengampu OPD" },
-  { id: "B4", label: "Perhitungan Kekurangan (SIMgaji)", icon: "🖥️", pelaksana: "Staf Pengampu OPD" },
-  { id: "B5", label: "Rincian Perhitungan Kekurangan Pembayaran Pangkat Pengabdian diserahkan ke Bendahara OPD", icon: "📤", pelaksana: "Staf Pengampu OPD" },
-  { id: "B6", label: "SPP-SPM Diterima dari OPD", icon: "📋", pelaksana: "Staf Perbendaharaan" },
-  { id: "B7", label: "Proses SP2D Kekurangan Pembayaran Pangkat Pengabdian", icon: "💳", pelaksana: "Staf Perbendaharaan" },
-  { id: "B8", label: "Pembuatan Draft SKPP", icon: "📝", pelaksana: "Staf Perbendaharaan" },
-  { id: "B9", label: "Verifikasi & Proses Tanda Tangan Pimpinan", icon: "✅", pelaksana: "Staf Pengampu OPD → Kasubid → Kuasa BUD" },
-  { id: "B10", label: "Penempelan Foto & Penomoran", icon: "📸", pelaksana: "Staf Loket" },
-  { id: "B11", label: "SKPP Siap Diserahkan", icon: "🎉", pelaksana: "Staf Loket", final: true },
-];
-
-// Lacak satu pengajuan dari Supabase berdasarkan Nomor Pengajuan (id) atau Kode Akses.
-async function lacakSupabase(query) {
-  const q = encodeURIComponent(query);
-  const url = `${SUPABASE_URL}/rest/v1/Pengajuan?or=(id.ilike.${q},kodeAkses.ilike.${q})&select=*`;
-  const res = await fetch(url, { headers: SB_HEADERS });
-  if (!res.ok) return { ok: false, pesan: "Gagal terhubung ke server." };
-  const rows = await res.json();
-  if (!Array.isArray(rows) || rows.length === 0)
-    return { ok: false, pesan: "Data tidak ditemukan. Periksa Nomor Pengajuan atau Kode Akses Anda." };
-  const p = rows[0];
-  const rurl = `${SUPABASE_URL}/rest/v1/Riwayat?pengajuanId=eq.${encodeURIComponent(p.id)}&select=*&order=waktu.asc`;
-  const rres = await fetch(rurl, { headers: SB_HEADERS });
-  const riwayat = rres.ok ? await rres.json() : [];
-  return { ok: true, data: { ...p, riwayat: Array.isArray(riwayat) ? riwayat : [] } };
+// ── UTILITAS NAVIGASI ────────────────────────────────────────────
+function scrollToId(id) {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+function scrollToLacak() {
+  scrollToId("lacak");
+  setTimeout(() => {
+    const input = document.getElementById("inputNomor");
+    if (input) input.focus();
+  }, 700);
 }
 
-// Ubah catatan Formulir Pengembalian (JSON) menjadi teks yang mudah dibaca warga.
-function bacaCatatan(str) {
-  if (!str) return "";
-  let o = null;
-  try { o = JSON.parse(str); } catch { return str; }
-  if (!o || o._type !== "FORMULIR_KEMBALI") return str;
-  const parts = [];
-  const dok = (o.rincian || []).filter((r) => r.dokumen);
-  if (dok.length) parts.push("Dokumen yang harus dilengkapi: " + dok.map((r) => r.dokumen + (r.tindakan ? ` (${r.tindakan})` : "")).join("; "));
-  const hut = (o.rincianHutang || []).filter((r) => r.jenis);
-  if (hut.length) parts.push("Hutang/kewajiban yang harus diselesaikan: " + hut.map((r) => r.jenis).join("; "));
-  if (o.alasan && o.alasan.hutang) {
-    const mek = o.mekanisme || {};
-    if (mek.penghitung === "pengampu" && mek.jumlah)
-      parts.push("Nominal hutang yang harus diselesaikan: Rp " + Number(mek.jumlah).toLocaleString("id-ID"));
-    else if (mek.penghitung === "bendahara")
-      parts.push("Nominal hutang dihitung oleh Bendahara OPD. Silakan hubungi Bendahara OPD");
-  }
-  return parts.join(" — ") || "Berkas dikembalikan untuk dilengkapi.";
-}
-
-function getProgress(p) {
-  const tahapan = p.jalur === "A" ? TAHAPAN_A : TAHAPAN_B;
-  const selesai = Array.isArray(p.tahapSelesai) ? p.tahapSelesai : (p.tahapSelesai || "").split(",").filter(Boolean);
-  return Math.round((selesai.length / tahapan.length) * 100);
-}
-
-function normalizeP(p) {
-  return {
-    ...p,
-    tahapSelesai: Array.isArray(p.tahapSelesai) ? p.tahapSelesai : (p.tahapSelesai || "").split(",").filter(Boolean),
-    riwayat: p.riwayat || [],
-  };
-}
-
-export default function App() {
-  const [query, setQuery] = useState("");
-  const [result, setResult] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState("");
-
-  const handleSearch = async () => {
-    if (!query.trim()) return;
-    setLoading(true); setErr(""); setResult(null);
-    try {
-      const res = await lacakSupabase(query.trim());
-      if (res.ok) setResult(normalizeP(res.data));
-      else setErr(res.pesan || "Data tidak ditemukan.");
-    } catch {
-      setErr("Gagal terhubung ke server. Periksa koneksi internet Anda.");
-    }
-    setLoading(false);
-  };
-
-  const prog = result ? getProgress(result) : 0;
-
+// ── NAVBAR ───────────────────────────────────────────────────────
+function Navbar({ scrolled }) {
   return (
-    <div className="app">
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        :root {
-          --navy:#0f1e3c; --navy-mid:#1a3260; --blue:#1d4ed8; --blue-light:#3b82f6;
-          --blue-pale:#eff6ff; --green:#059669; --green-pale:#ecfdf5;
-          --amber:#d97706; --amber-pale:#fffbeb; --red:#dc2626; --red-pale:#fef2f2;
-          --g50:#f8fafc; --g100:#f1f5f9; --g200:#e2e8f0; --g300:#cbd5e1;
-          --g400:#94a3b8; --g500:#64748b; --g600:#475569; --g700:#334155; --g800:#1e293b;
-          --font:'Plus Jakarta Sans',sans-serif; --mono:'JetBrains Mono',monospace;
-          --r:12px; --rs:8px;
-          --shadow:0 1px 3px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.06);
-        }
-        body{font-family:var(--font);background:var(--g50);color:var(--g800);}
-        .app{min-height:100vh;display:flex;flex-direction:column;}
-        .container-sm{max-width:720px;margin:0 auto;padding:28px 20px;}
-        .card{background:white;border-radius:var(--r);box-shadow:var(--shadow);border:1px solid var(--g200);margin-bottom:20px;}
-        .card-header{padding:18px 22px;border-bottom:1px solid var(--g100);display:flex;align-items:center;justify-content:space-between;}
-        .card-body{padding:22px;}
-        .badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;}
-        .badge-blue{background:#dbeafe;color:#1d4ed8;}
-        .badge-green{background:#d1fae5;color:#065f46;}
-        .badge-amber{background:#fef3c7;color:#92400e;}
-        .progress-wrap{background:var(--g100);border-radius:999px;height:6px;overflow:hidden;}
-        .progress-bar{height:100%;border-radius:999px;transition:width .5s ease;}
-        .timeline{position:relative;}
-        .timeline-item{display:flex;gap:16px;position:relative;}
-        .timeline-left{display:flex;flex-direction:column;align-items:center;width:36px;flex-shrink:0;}
-        .timeline-dot{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;position:relative;z-index:1;border:2.5px solid transparent;}
-        .timeline-dot.done{background:#d1fae5;border-color:#059669;}
-        .timeline-dot.active{background:#dbeafe;border-color:var(--blue);animation:pulseRing 2s infinite;}
-        .timeline-dot.pending{background:var(--g100);border-color:var(--g300);opacity:.5;}
-        .timeline-dot.returned{background:#fef3c7;border-color:var(--amber);}
-        .timeline-line{flex:1;width:2px;background:var(--g200);min-height:24px;margin-top:4px;}
-        .timeline-line.done{background:#059669;}
-        .timeline-content{flex:1;}
-        .timeline-title{font-weight:700;font-size:14px;color:var(--g800);margin-bottom:2px;}
-        .timeline-title.pending{color:var(--g400);}
-        .timeline-subtitle{font-size:12px;color:var(--g500);margin-bottom:6px;}
-        .timeline-time{font-size:11px;color:var(--g400);font-family:var(--mono);}
-        .timeline-note{background:var(--g50);border:1px solid var(--g200);border-radius:var(--rs);padding:8px 12px;font-size:12px;color:var(--g600);margin-top:6px;}
-        .timeline-note.ret{background:#fffbeb;border-color:#fde68a;color:#92400e;}
-        @keyframes pulseRing{0%{box-shadow:0 0 0 0 rgba(59,130,246,.4);}70%{box-shadow:0 0 0 8px rgba(59,130,246,0);}100%{box-shadow:0 0 0 0 rgba(59,130,246,0);}}
-        .hero{background:linear-gradient(135deg,var(--navy) 0%,var(--navy-mid) 100%);padding:40px 24px;text-align:center;color:white;}
-        .hero h1{font-size:26px;font-weight:800;letter-spacing:-.5px;margin-bottom:6px;}
-        .hero p{color:#94a3b8;font-size:14px;}
-        .hero-search-wrap{max-width:500px;margin:24px auto 0;position:relative;}
-        .hero-search-input{width:100%;padding:14px 20px;padding-right:110px;border:none;border-radius:12px;font-family:var(--font);font-size:14px;outline:none;color:var(--g800);}
-        .hero-search-btn{position:absolute;right:6px;top:6px;padding:8px 16px;background:var(--blue);color:white;border:none;border-radius:8px;font-family:var(--font);font-weight:700;font-size:13px;cursor:pointer;}
-        .alert{padding:12px 16px;border-radius:var(--rs);margin-bottom:16px;font-size:13px;display:flex;gap:10px;align-items:flex-start;}
-        .alert-amber{background:#fffbeb;border:1px solid #fde68a;color:#92400e;}
-        .alert-green{background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;}
-        .info-row{display:flex;gap:8px;align-items:baseline;margin-bottom:8px;}
-        .info-label{font-size:11px;color:var(--g500);font-weight:700;text-transform:uppercase;letter-spacing:.4px;min-width:100px;}
-        .info-value{font-size:13px;color:var(--g800);font-weight:500;}
-        .loading-overlay{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:48px;color:var(--g500);}
-        .spinner{width:32px;height:32px;border:3px solid var(--g200);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;}
-        @keyframes spin{to{transform:rotate(360deg);}}
-      `}</style>
-
-      <div className="hero">
-        <div style={{ fontSize: 36, marginBottom: 8 }}>📄</div>
-        <h1>Lacak Status Pengajuan SKPP</h1>
-        <p>Badan Keuangan dan Aset Daerah Provinsi NTT</p>
-        <div className="hero-search-wrap">
-          <input className="hero-search-input" placeholder="Masukkan Nomor Pengajuan atau NIP"
-            value={query} onChange={e => setQuery(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && handleSearch()} />
-          <button className="hero-search-btn" onClick={handleSearch} disabled={loading}>
-            {loading ? "..." : "Lacak →"}
-          </button>
+    <nav className={"navbar" + (scrolled ? " scrolled" : "")} id="navbar">
+      <div className="nav-left">
+        <div className="nav-logo">
+          <img src="/logo.png" alt="Logo Badan Keuangan Daerah Provinsi NTT" />
+        </div>
+        <div className="nav-brand">
+          <div className="instansi">Pemerintah Provinsi Nusa Tenggara Timur</div>
+          <div className="nama">Badan Keuangan Daerah Provinsi Nusa Tenggara Timur</div>
         </div>
       </div>
+      <div className="nav-links">
+        <a
+          href="#prosedur"
+          className="nav-a"
+          onClick={(e) => {
+            e.preventDefault();
+            scrollToId("prosedur");
+          }}
+        >
+          Prosedur
+        </a>
+        <a
+          href="#lacak"
+          className="nav-btn"
+          onClick={(e) => {
+            e.preventDefault();
+            scrollToLacak();
+          }}
+        >
+          🔍 Lacak Status SKPP
+        </a>
+      </div>
+    </nav>
+  );
+}
 
-      <div className="container-sm">
-        {loading && <div className="loading-overlay"><div className="spinner" /><span>Mencari data...</span></div>}
+// ── HERO (slider) ────────────────────────────────────────────────
+function Hero() {
+  const [cur, setCur] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setCur((c) => (c + 1) % HERO_SLIDES.length), 6000);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <section className="hero">
+      <div className="hero-slides">
+        {HERO_SLIDES.map((src, i) => (
+          <div
+            key={i}
+            className={"slide" + (i === cur ? " active" : "")}
+            style={{ backgroundImage: `url('${src}')` }}
+          />
+        ))}
+      </div>
+      <div className="hero-body">
+        <div className="hero-eyebrow">
+          <i></i>SI-PASTI · Sistem Pemantauan Alur SKPP Terintegrasi
+        </div>
+        <h1 className="hero-h1">
+          Status SKPP Anda,
+          <br />
+          Kini <em>Pasti</em>
+          <br />
+          &amp; Terpantau
+        </h1>
+        <p className="hero-p">
+          Lewat SI-PASTI, Badan Keuangan Daerah Provinsi Nusa Tenggara Timur menghadirkan
+          kepastian dan transparansi — pantau setiap tahap pengajuan SKPP Anda secara daring,
+          kapan saja.
+        </p>
+        <a
+          href="#lacak"
+          className="hero-cta"
+          onClick={(e) => {
+            e.preventDefault();
+            scrollToLacak();
+          }}
+        >
+          Lacak Status SKPP
+        </a>
+      </div>
+      <div className="indicators">
+        {HERO_SLIDES.map((_, i) => (
+          <div
+            key={i}
+            className={"dot" + (i === cur ? " active" : "")}
+            onClick={() => setCur(i)}
+          />
+        ))}
+      </div>
+      <div className="slide-caption">
+        <div className="caption-txt">{CAPTIONS[cur]}</div>
+      </div>
+    </section>
+  );
+}
 
-        {err && !loading && (
-          <div className="alert alert-amber">
-            <span>⚠️</span>
-            <div><strong>Data tidak ditemukan</strong><br />{err}</div>
+// ── STATS (counter animasi + RPC statistik) ──────────────────────
+function animCount(setter, target) {
+  let v = 0;
+  const step = Math.ceil(target / 55) || 1;
+  const t = setInterval(() => {
+    v = Math.min(v + step, target);
+    setter(v);
+    if (v >= target) clearInterval(t);
+  }, 28);
+}
+
+function Stats() {
+  const ref = useRef(null);
+  const [total, setTotal] = useState(0);
+  const [terbit, setTerbit] = useState(0);
+  const [hari, setHari] = useState("≤ 3");
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    let started = false;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach(async (x) => {
+          if (x.isIntersecting && !started) {
+            started = true;
+            obs.disconnect();
+            const stats = await fetchStatistik();
+            animCount(setTotal, stats?.total ?? STAT_FALLBACK.total);
+            animCount(setTerbit, stats?.terbit ?? STAT_FALLBACK.terbit);
+            if (stats && typeof stats.rataHari === "number") {
+              setHari(stats.rataHari < 1 ? "< 1" : String(stats.rataHari));
+            }
+          }
+        });
+      },
+      { threshold: 0.5 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  return (
+    <div className="stats" ref={ref}>
+      <div className="stat">
+        <div className="stat-n">{total.toLocaleString("id-ID")}</div>
+        <div className="stat-l">Total Pengajuan SKPP</div>
+      </div>
+      <div className="stat">
+        <div className="stat-n">{terbit.toLocaleString("id-ID")}</div>
+        <div className="stat-l">SKPP Telah Diterbitkan</div>
+      </div>
+      <div className="stat">
+        <div className="stat-n">{hari}</div>
+        <div className="stat-l">Hari Kerja Rata-rata Proses</div>
+      </div>
+      <div className="stat">
+        <div className="stat-n">24/7</div>
+        <div className="stat-l">Akses Pelacakan Daring</div>
+      </div>
+    </div>
+  );
+}
+
+// ── KARTU HASIL PELACAKAN ────────────────────────────────────────
+function ResultCard({ p }) {
+  const tahapan = p.jalur === "A" ? TAHAPAN_A : TAHAPAN_B;
+  const prog = getProgress(p);
+  const progColor = prog === 100 ? "#059669" : p.status === "kembali" ? "#d97706" : "#1d4ed8";
+  const barBg =
+    prog === 100
+      ? "linear-gradient(90deg,#059669,#10b981)"
+      : p.status === "kembali"
+      ? "linear-gradient(90deg,#d97706,#f59e0b)"
+      : "linear-gradient(90deg,var(--teal),var(--blue))";
+
+  const badge =
+    p.status === "selesai" ? (
+      <span className="badge-selesai">✓ Selesai</span>
+    ) : p.status === "kembali" ? (
+      <span className="badge-kembali">↩ Berkas Dikembalikan</span>
+    ) : (
+      <span className="badge-proses">⟳ Sedang Diproses</span>
+    );
+
+  const meta = [p.opd, p.alasan, p.jalur === "A" ? "Jalur A" : "Jalur B"]
+    .filter(Boolean)
+    .join(" · ");
+
+  const infoItems = [
+    ["NIP", p.nip || "-"],
+    ["OPD / Instansi", p.opd || "-"],
+    ["Pangkat / Gol.", p.pangkat || "-"],
+    ["Tgl. Masuk", p.tanggalMasuk || "-"],
+    p.status === "selesai"
+      ? ["Tgl. Selesai", p.tanggalSelesai || "-"]
+      : ["Est. Selesai", p.estimasiSelesai || "-"],
+    p.nomorSKPP ? ["Nomor SKPP", p.nomorSKPP] : null,
+  ].filter(Boolean);
+
+  return (
+    <>
+      <div className="res-header">
+        <div>
+          <div className="res-id">{p.id}</div>
+          <div className="res-name">{p.nama}</div>
+          <div className="res-meta">{meta}</div>
+        </div>
+        <div>{badge}</div>
+      </div>
+
+      <div className="res-prog-label">
+        <span>Progres Penyelesaian</span>
+        <span style={{ fontWeight: 800, color: progColor }}>{prog}%</span>
+      </div>
+      <div className="res-prog-wrap">
+        <div className="res-prog-bar" style={{ width: prog + "%", background: barBg }} />
+      </div>
+
+      <div className="res-info-grid">
+        {infoItems.map(([l, v]) => (
+          <div key={l}>
+            <div className="res-info-lbl">{l}</div>
+            <div className="res-info-val">{v}</div>
+          </div>
+        ))}
+      </div>
+
+      {p.status === "kembali" && p.catatan && (
+        <div className="result-alert result-alert-warn">
+          <span>⚠️</span>
+          <div>
+            <strong>Berkas Perlu Dilengkapi</strong>
+            <br />
+            <span style={{ fontSize: 12 }}>
+              <FormatCatatan raw={p.catatan} />
+            </span>
+          </div>
+        </div>
+      )}
+
+      {p.status === "selesai" && (
+        <div className="result-alert result-alert-ok">
+          <span>🎉</span>
+          <div>
+            <strong>SKPP Telah Selesai</strong>
+            <br />
+            <span style={{ fontSize: 12 }}>
+              SKPP dapat diambil di Loket Bidang Perbendaharaan. Harap membawa identitas diri
+              dan tanda terima pengajuan.
+            </span>
+          </div>
+        </div>
+      )}
+
+      <div
+        style={{
+          fontSize: 11,
+          fontWeight: 700,
+          color: "var(--g500)",
+          textTransform: "uppercase",
+          letterSpacing: ".5px",
+          margin: "20px 0 12px",
+        }}
+      >
+        Riwayat Proses
+      </div>
+
+      <div className="timeline">
+        {tahapan.map((step, idx) => {
+          const isDone = p.tahapSelesai.includes(step.id);
+          const isAktif = p.tahapAktif === step.id;
+          const isLast = idx === tahapan.length - 1;
+          // Ambil catatan TERBARU untuk tahap ini (entri terakhir mencerminkan
+          // status akhir — selaras dashboard internal).
+          const logs = p.riwayat.filter((r) => r.tahap === step.id);
+          const log = logs.length ? logs[logs.length - 1] : null;
+          // "dikembalikan" hanya bila tahap ini sedang aktif & status kembali.
+          const isRet = !isDone && isAktif && p.status === "kembali";
+
+          let dotCls = "w";
+          let dotIcon = "○";
+          if (isDone) {
+            dotCls = "d";
+            dotIcon = "✓";
+          } else if (isRet) {
+            dotCls = "r";
+            dotIcon = "↩";
+          } else if (isAktif) {
+            dotCls = "a";
+            dotIcon = "→";
+          }
+
+          return (
+            <div className="tl-item" key={step.id}>
+              <div className="tl-left">
+                <div className={`tl-dot ${dotCls}`}>{dotIcon}</div>
+                {!isLast && <div className={`tl-line ${isDone && !isRet ? "d" : ""}`} />}
+              </div>
+              <div className="tl-content" style={{ paddingBottom: isLast ? 0 : 18 }}>
+                <div className={`tl-title ${!isDone && !isAktif ? "w" : ""}`}>
+                  {step.label}
+                  {isAktif && !isDone && (
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 4,
+                        background: "#dbeafe",
+                        color: "#1d4ed8",
+                        fontSize: 10,
+                        fontWeight: 700,
+                        padding: "2px 8px",
+                        borderRadius: 999,
+                        marginLeft: 6,
+                      }}
+                    >
+                      Aktif
+                    </span>
+                  )}
+                </div>
+                <div className={`tl-sub ${!isDone && !isAktif ? "w" : ""}`}>{step.pelaksana}</div>
+                {log && <div className="tl-time">{log.waktu || ""}</div>}
+                {log && log.catatan && (
+                  <div className={`tl-note ${isRet ? "r" : ""}`}>
+                    {isRet ? "⚠ " : ""}
+                    <FormatCatatan raw={log.catatan} />
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div
+        style={{
+          marginTop: 16,
+          fontSize: 11,
+          color: "var(--g500)",
+          textAlign: "center",
+        }}
+      >
+        Hubungi Bidang Perbendaharaan Bakeuda NTT untuk informasi lebih lanjut
+        <br />
+        📧 badankeuanganprovntt@gmail.com &nbsp;·&nbsp; 🕐 Senin–Jumat, 08.00–15.00 WITA
+      </div>
+    </>
+  );
+}
+
+// ── BAGIAN LACAK (form + hasil) ──────────────────────────────────
+function LacakSection() {
+  const [nomor, setNomor] = useState("");
+  const [kode, setKode] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [result, setResult] = useState(null);
+  const nomorRef = useRef(null);
+  const kodeRef = useRef(null);
+  const resultRef = useRef(null);
+
+  useEffect(() => {
+    if (result && resultRef.current) {
+      const el = resultRef.current;
+      setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "nearest" }), 100);
+    }
+  }, [result]);
+
+  async function doLacak() {
+    if (!nomor.trim()) {
+      nomorRef.current?.focus();
+      return;
+    }
+    if (!kode.trim()) {
+      kodeRef.current?.focus();
+      return;
+    }
+    setLoading(true);
+    setError("");
+    setResult(null);
+    scrollToId("lacak");
+    try {
+      const p = await lacak(nomor.trim(), kode.trim());
+      if (p) setResult(p);
+      else
+        setError(
+          "Nomor pengajuan/NIP atau kode akses tidak valid. Periksa kembali tanda terima Anda."
+        );
+    } catch {
+      setError("Gagal terhubung ke server. Periksa koneksi internet Anda dan coba kembali.");
+    }
+    setLoading(false);
+  }
+
+  const onEnter = (e) => e.key === "Enter" && doLacak();
+
+  return (
+    <section className="lacak-section" id="lacak">
+      <div className="wrap" style={{ maxWidth: 720 }}>
+        <div className="s-tag">Pelacakan Status Pengajuan</div>
+        <h2 className="s-h2">
+          Cek Status <em>Pengajuan SKPP</em> Anda
+        </h2>
+        <p className="s-p" style={{ maxWidth: "100%", marginBottom: 28 }}>
+          Masukkan Nomor Pengajuan <strong>atau NIP</strong>, beserta Kode Akses yang tertera
+          pada <strong>Tanda Terima Pengajuan</strong> yang diberikan oleh petugas loket Bidang
+          Perbendaharaan.
+        </p>
+
+        <div className="search-form">
+          <div className="search-row">
+            <div className="search-group">
+              <label className="search-label">Nomor Pengajuan / NIP</label>
+              <input
+                type="text"
+                id="inputNomor"
+                ref={nomorRef}
+                className="search-field"
+                placeholder="Nomor Pengajuan atau NIP"
+                value={nomor}
+                onChange={(e) => setNomor(e.target.value)}
+                onKeyDown={onEnter}
+              />
+            </div>
+            <div className="search-group" style={{ maxWidth: 180 }}>
+              <label className="search-label">Kode Akses</label>
+              <input
+                type="text"
+                id="inputKode"
+                ref={kodeRef}
+                className="search-field kode-field"
+                placeholder="A1B2C3"
+                maxLength={6}
+                value={kode}
+                onChange={(e) => setKode(e.target.value.toUpperCase())}
+                onKeyDown={onEnter}
+              />
+            </div>
+          </div>
+          <button className="search-submit" onClick={doLacak} disabled={loading}>
+            <span>{loading ? "⟳ Memverifikasi…" : "Lacak Status SKPP"}</span>
+          </button>
+        </div>
+
+        <div className="search-hint">
+          ℹ️ Nomor Pengajuan dan Kode Akses tercantum pada <strong>Tanda Terima</strong> yang
+          diberikan petugas loket saat berkas didaftarkan. Anda juga dapat mencari menggunakan{" "}
+          <strong>NIP</strong> beserta Kode Akses.
+        </div>
+
+        {loading && (
+          <div style={{ textAlign: "center", padding: 40 }}>
+            <div className="search-spinner"></div>
+            <div style={{ marginTop: 12, fontSize: 13, color: "var(--g500)" }}>
+              Memverifikasi dan mencari data pengajuan…
+            </div>
           </div>
         )}
 
-        {result && !loading && (
-          <div>
-            <div className="card">
-              <div className="card-body">
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:16 }}>
-                  <div>
-                    <div style={{ fontSize:11, color:"var(--g500)", fontWeight:700, textTransform:"uppercase", marginBottom:4 }}>Nomor Pengajuan</div>
-                    <div style={{ fontSize:20, fontWeight:800, fontFamily:"var(--mono)", color:"var(--navy)" }}>{result.id}</div>
-                  </div>
-                  <span className={`badge ${result.status === "selesai" ? "badge-green" : result.status === "kembali" ? "badge-amber" : "badge-blue"}`}>
-                    {result.status === "selesai" ? "✓ Selesai" : result.status === "kembali" ? "↩ Dikembalikan" : "⟳ Diproses"}
-                  </span>
-                </div>
-                <div style={{ background:"var(--g50)", borderRadius:"var(--rs)", padding:"14px 16px", marginBottom:16 }}>
-                  {[["Nama", result.nama, true], ["NIP", result.nip], ["Instansi", result.opd], ["Keperluan", result.alasan], ["Tanggal Masuk", result.tanggalMasuk]].map(([l, v, bold]) => (
-                    <div key={l} className="info-row">
-                      <span className="info-label">{l}</span>
-                      <span className="info-value" style={bold ? { fontWeight:700 } : {}}>{v}</span>
-                    </div>
-                  ))}
-                </div>
-                <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
-                  <span style={{ fontSize:12, fontWeight:700, color:"var(--g600)" }}>Progress</span>
-                  <span style={{ fontSize:12, fontWeight:800, color: prog===100 ? "var(--green)" : "var(--blue)" }}>{prog}%</span>
-                </div>
-                <div className="progress-wrap">
-                  <div className="progress-bar" style={{ width:`${prog}%`, background: prog===100 ? "var(--green)" : result.status==="kembali" ? "var(--amber)" : "var(--blue)" }} />
-                </div>
-              </div>
+        {!loading && error && (
+          <div className="result-alert result-alert-warn">
+            <span style={{ fontSize: 20 }}>⚠️</span>
+            <div>
+              <strong>Pencarian Gagal</strong>
+              <br />
+              <span style={{ fontSize: 13 }}>{error}</span>
             </div>
+          </div>
+        )}
 
-            {result.status === "kembali" && (() => {
-              const retLog = [...result.riwayat].reverse().find((r) => r.isKembali === true || r.isKembali === "TRUE");
-              const pesan = bacaCatatan(retLog?.catatan);
-              return pesan ? (
-                <div className="alert alert-amber">
-                  <span>⚠️</span>
-                  <div><strong>Berkas Perlu Dilengkapi:</strong><br />{pesan}</div>
-                </div>
-              ) : null;
-            })()}
-
-            <div className="card">
-              <div className="card-header">
-                <div>
-                  <div style={{ fontWeight:800, fontSize:15, color:"var(--navy)" }}>Riwayat Proses</div>
-                  <div style={{ fontSize:12, color:"var(--g500)" }}>{JALUR[result.jalur]}</div>
-                </div>
-              </div>
-              <div className="card-body">
-                <div className="timeline">
-                  {(result.jalur === "A" ? TAHAPAN_A : TAHAPAN_B).map((step, idx, arr) => {
-                    const isDone = result.tahapSelesai.includes(step.id);
-                    const isActive = result.tahapAktif === step.id;
-                    const logs = result.riwayat.filter(r => r.tahap === step.id);
-                    const log = logs.find(r => r.isKembali === true || r.isKembali === "TRUE") || logs[0];
-                    const pernahRet = logs.some(r => r.isKembali === true || r.isKembali === "TRUE");
-                    // Tampilkan "dikembalikan" hanya selama tahap belum selesai.
-                    const retNow = pernahRet && !isDone;
-                    let dot = "pending";
-                    if (isDone) dot = "done";
-                    else if (retNow) dot = "returned";
-                    else if (isActive) dot = "active";
-
-                    return (
-                      <div key={step.id} className="timeline-item">
-                        <div className="timeline-left">
-                          <div className={`timeline-dot ${dot}`}>
-                            {isDone ? "✓" : retNow ? "↩" : step.icon}
-                          </div>
-                          {idx !== arr.length - 1 && <div className={`timeline-line ${isDone ? "done" : ""}`} />}
-                        </div>
-                        <div className="timeline-content" style={{ paddingBottom: idx === arr.length - 1 ? 0 : 24 }}>
-                          <div className={`timeline-title ${!isDone && !isActive ? "pending" : ""}`}>{step.label}</div>
-                          <div className="timeline-subtitle">{step.pelaksana}</div>
-                          {log?.catatan && <div className={`timeline-note ${retNow ? "ret" : ""}`}>{bacaCatatan(log.catatan)}</div>}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
+        {!loading && result && (
+          <div className="result-wrap" ref={resultRef}>
+            <ResultCard p={result} />
           </div>
         )}
       </div>
-    </div>
+    </section>
+  );
+}
+
+// ── PROSEDUR ─────────────────────────────────────────────────────
+function Prosedur() {
+  return (
+    <section className="prosedur-section" id="prosedur">
+      <div className="wrap">
+        <div style={{ maxWidth: 500 }}>
+          <div className="s-tag">Tata Cara Pengajuan</div>
+          <h2 className="s-h2">
+            Prosedur Pengajuan <em style={{ color: "var(--gold)" }}>SKPP</em>
+          </h2>
+          <p className="s-p">
+            Berikut adalah tahapan proses penerbitan SKPP di Bidang Perbendaharaan Badan Keuangan
+            Daerah Provinsi NTT sesuai dengan SOP yang berlaku.
+          </p>
+        </div>
+        <div className="steps-grid">
+          {PROSEDUR.map((s) => (
+            <div className="step-card" key={s.no}>
+              <div className="step-no">{s.no}</div>
+              <div className="step-ico">{s.ico}</div>
+              <div className="step-title">{s.title}</div>
+              <div className="step-desc">{s.desc}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ── FOOTER ───────────────────────────────────────────────────────
+function Footer() {
+  return (
+    <footer>
+      <div className="wrap">
+        <div className="footer-top">
+          <div>
+            <div className="footer-brand">
+              <div className="footer-logo">
+                <img src="/logo.png" alt="Logo Badan Keuangan Daerah Provinsi NTT" />
+              </div>
+              <div>
+                <div className="ft-nama">
+                  Badan Keuangan Daerah
+                  <br />
+                  Provinsi Nusa Tenggara Timur
+                </div>
+                <div className="ft-sub">SI-PASTI · Sistem Pemantauan Alur SKPP Terintegrasi</div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div className="fc-title">Alamat Kantor</div>
+            <div className="footer-addr">
+              Jl. Raya El Tari No. 52
+              <br />
+              Oebobo, 85111
+              <br />
+              Kota Kupang, Nusa Tenggara Timur
+              <br />
+              <br />
+              <a href="mailto:badankeuanganprovntt@gmail.com">badankeuanganprovntt@gmail.com</a>
+              <br />
+              <a
+                href="https://bakeuda.nttprov.go.id/web/home?m=MQ=="
+                target="_blank"
+                rel="noopener"
+              >
+                bakeuda.nttprov.go.id
+              </a>
+              <br />
+              🕐 Senin–Jumat, 08.00–15.00 WITA
+            </div>
+          </div>
+          <div>
+            <div className="fc-title">Media Sosial</div>
+            <div className="sosmed-list">
+              <a
+                href="https://www.facebook.com/people/Badan-Keuangan-Daerah-Prov-NTT/100072145037667/"
+                className="sosmed-a"
+                target="_blank"
+                rel="noopener"
+              >
+                <div className="sosmed-ico" style={{ background: "#1877f2" }}>
+                  <svg width="16" height="16" viewBox="0 0 320 512" fill="#fff" aria-hidden="true">
+                    <path d="M279.14 288l14.22-92.66h-88.91V134.6c0-25.35 12.42-50.06 52.24-50.06h40.42V5.49S260.43 0 225.36 0c-73.22 0-121.08 44.38-121.08 124.72v70.62H22.89V288h81.39v224h100.17V288z" />
+                  </svg>
+                </div>
+                <span>Bkeuda NTT</span>
+              </a>
+              <a
+                href="https://www.instagram.com/bakeuda.ntt?igsh=MW1uaDE5YXdxcjJsOA=="
+                className="sosmed-a"
+                target="_blank"
+                rel="noopener"
+              >
+                <div
+                  className="sosmed-ico"
+                  style={{ background: "linear-gradient(135deg,#f58529,#dd2a7b,#8134af)" }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff" aria-hidden="true">
+                    <path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.22.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.05.41 2.22.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.22-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.05.36-2.22.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.22-.41-.56-.22-.96-.48-1.38-.9-.42-.42-.68-.82-.9-1.38-.16-.42-.36-1.05-.41-2.22-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.22.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.05-.36 2.22-.41 1.27-.06 1.65-.07 4.85-.07zm0 1.95c-3.15 0-3.52.01-4.76.07-.95.04-1.46.2-1.81.34-.45.18-.78.39-1.12.73-.34.34-.55.67-.73 1.12-.13.35-.3.86-.34 1.81-.06 1.24-.07 1.61-.07 4.76s.01 3.52.07 4.76c.04.95.2 1.46.34 1.81.18.45.39.78.73 1.12.34.34.67.55 1.12.73.35.13.86.3 1.81.34 1.24.06 1.61.07 4.76.07s3.52-.01 4.76-.07c.95-.04 1.46-.2 1.81-.34.45-.18.78-.39 1.12-.73.34-.34.55-.67.73-1.12.13-.35.3-.86.34-1.81.06-1.24.07-1.61.07-4.76s-.01-3.52-.07-4.76c-.04-.95-.2-1.46-.34-1.81-.18-.45-.39-.78-.73-1.12-.34-.34-.67-.55-1.12-.73-.35-.13-.86-.3-1.81-.34-1.24-.06-1.61-.07-4.76-.07zm0 3.32a5.07 5.07 0 1 1 0 10.14 5.07 5.07 0 0 1 0-10.14zm0 8.36a3.29 3.29 0 1 0 0-6.58 3.29 3.29 0 0 0 0 6.58zm6.46-8.58a1.18 1.18 0 1 1-2.37 0 1.18 1.18 0 0 1 2.37 0z" />
+                  </svg>
+                </div>
+                <span>bakeuda.ntt</span>
+              </a>
+              <a
+                href="https://www.tiktok.com/@bkeuda.ntt"
+                className="sosmed-a"
+                target="_blank"
+                rel="noopener"
+              >
+                <div className="sosmed-ico" style={{ background: "#010101" }}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="#fff" aria-hidden="true">
+                    <path d="M16.6 5.82a4.28 4.28 0 0 1-1.05-2.82h-3.2v12.86a2.59 2.59 0 0 1-2.59 2.46 2.59 2.59 0 0 1-2.59-2.59 2.59 2.59 0 0 1 3.4-2.46V9.99a5.78 5.78 0 0 0-.81-.06A5.79 5.79 0 0 0 4 15.72a5.79 5.79 0 0 0 9.97 3.97 5.78 5.78 0 0 0 1.6-4V8.9a7.45 7.45 0 0 0 4.36 1.4V7.1a4.29 4.29 0 0 1-3.33-1.28z" />
+                  </svg>
+                </div>
+                <span>bkeuda.ntt</span>
+              </a>
+              <a
+                href="https://youtube.com/@bkeudantt?si=O-0w6nx8xTTUWhGH"
+                className="sosmed-a"
+                target="_blank"
+                rel="noopener"
+              >
+                <div className="sosmed-ico" style={{ background: "#ff0000" }}>
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="#fff" aria-hidden="true">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </div>
+                <span>BKEUDA NTT</span>
+              </a>
+            </div>
+          </div>
+        </div>
+        <div className="footer-bottom">
+          <div className="footer-copy">
+            © 2026 Badan Keuangan Daerah Provinsi Nusa Tenggara Timur. Hak cipta dilindungi
+            undang-undang.
+          </div>
+          <div className="footer-ver">SI-PASTI v1.0 · Dikembangkan oleh Dika Putra Gumay</div>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+// ── APP ──────────────────────────────────────────────────────────
+export default function App() {
+  const [scrolled, setScrolled] = useState(false);
+  const [showBtt, setShowBtt] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => {
+      setScrolled(window.scrollY > 60);
+      setShowBtt(window.scrollY > 400);
+    };
+    window.addEventListener("scroll", onScroll);
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  return (
+    <>
+      <Navbar scrolled={scrolled} />
+      <Hero />
+      <Stats />
+      <LacakSection />
+      <Prosedur />
+      <Footer />
+      <button
+        className={"btt" + (showBtt ? " show" : "")}
+        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        aria-label="Kembali ke atas"
+      >
+        ↑
+      </button>
+    </>
   );
 }
