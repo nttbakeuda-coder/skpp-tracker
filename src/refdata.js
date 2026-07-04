@@ -75,6 +75,16 @@ export const DAFTAR_KEPERLUAN = [
   "Pemberhentian Tidak dengan Hormat", "Meninggal Dunia", "Lainnya",
 ];
 
+// Keperluan yang tampil di FORM ONLINE: Pensiun Janda/Duda TIDAK ditawarkan di
+// sini (ditangani dashboard internal). Kasus meninggal dunia dipilah lewat
+// status ahli waris (lihat AHLI_WARIS_HUBUNGAN) di form.
+export const DAFTAR_KEPERLUAN_ONLINE = DAFTAR_KEPERLUAN.filter(
+  (k) => k !== "Pensiun Janda" && k !== "Pensiun Duda"
+);
+
+// Hubungan ahli waris (dipakai bila Keperluan = Meninggal Dunia + Dengan Ahli Waris).
+export const AHLI_WARIS_HUBUNGAN = ["Istri", "Suami", "Anak", "Orang Tua", "Ahli Waris Lain"];
+
 // Saran jenis dokumen untuk pelabelan berkas yang diunggah (BerkasPengajuan.jenis).
 export const DAFTAR_DOKUMEN_SKPP = [
   "Surat Pengantar dari OPD",
@@ -103,7 +113,7 @@ export const DP_DOKUMEN_GRUP = [
     { t: "Fotokopi KTP Pegawai yang Bersangkutan" },
     { t: "Fotokopi Kartu Keluarga yang masih berlaku" },
     { t: "Surat Pernyataan Bebas Hutang dari Bendahara Gaji OPD (bermaterai)" },
-    { t: "Pas foto terbaru ukuran 4×6 berlatar merah/biru sebanyak 3 (tiga) lembar" },
+    { t: "Pas foto terbaru ukuran 4×6 berlatar merah/biru" },
   ] },
   { grup: "II. DOKUMEN TAMBAHAN — PENSIUN (BUP / APS / CACAT / MENINGGAL)", items: [
     { t: "SK Pensiun / Persetujuan Pensiun yang telah ditetapkan oleh BKN / Pejabat Pembina Kepegawaian" },
@@ -121,21 +131,26 @@ export const DP_DOKUMEN_GRUP = [
     { t: "SK Pemberhentian yang telah ditetapkan oleh pejabat berwenang" },
     { t: "Surat Pernyataan Tidak Menuntut Hak atas Pensiun (jika APS sebelum BUP)", ket: "Jika berlaku" },
   ] },
-  { grup: "V. DOKUMEN TAMBAHAN — JANDA / DUDA", items: [
+  { grup: "V. DOKUMEN TAMBAHAN — AHLI WARIS (MENINGGAL DUNIA)", items: [
     { t: "Akta Kematian Pegawai yang bersangkutan (asli atau dilegalisir)" },
     { t: "Fotokopi Akta Perkawinan / Buku Nikah (dilegalisir)" },
-    { t: "Fotokopi KTP Janda/Duda yang masih berlaku" },
+    { t: "Fotokopi KTP Ahli Waris yang masih berlaku" },
   ] },
 ];
 
 // Grup mana yang relevan untuk sebuah Keperluan SKPP (grup 0/umum selalu tampil).
+// Meninggal Dunia "Tanpa Ahli Waris" diperlakukan seperti pemberhentian (grup IV);
+// "Dengan Ahli Waris" memakai grup V (dokumen ahli waris).
 export function dpGrupTampil(alasan) {
   const al = alasan || "";
-  const isJD = al.includes("Janda") || al.includes("Duda") || al.includes("Meninggal");
-  const isBH = al.includes("Berhenti") || al.includes("Pemberhentian");
+  const isMeninggal = al.includes("Meninggal");
+  const isTanpaAW = al.includes("Tanpa Ahli Waris");
+  const isDenganAW = al.includes("Dengan Ahli Waris") || al.includes("Janda") || al.includes("Duda");
+  const isBH = al.includes("Berhenti") || al.includes("Pemberhentian") || (isMeninggal && isTanpaAW);
   const isPD = al.includes("Pindah");
-  const isPS = al.includes("Pensiun") && !isJD;
-  return [true, isPS, isPD, isBH, isJD];
+  const isPS = al.includes("Pensiun") && !isMeninggal && !isDenganAW;
+  const isAW = isDenganAW;
+  return [true, isPS, isPD, isBH, isAW];
 }
 
 // Batas unggah berkas (selaras kebijakan Fase 1 & setelan bucket).

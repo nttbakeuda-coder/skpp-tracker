@@ -2,8 +2,60 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth.jsx";
 import { ajukanPengajuan, uploadBerkas } from "../portal.js";
-import { DAFTAR_OPD, DAFTAR_KEPERLUAN, pangkatUntukStatus } from "../refdata.js";
+import { DAFTAR_OPD, DAFTAR_KEPERLUAN_ONLINE, AHLI_WARIS_HUBUNGAN, pangkatUntukStatus } from "../refdata.js";
 import { BerkasPersyaratan } from "../components/BerkasPersyaratan.jsx";
+
+// Keperluan efektif yang dikirim ke server, memperhitungkan status ahli waris
+// untuk kasus Meninggal Dunia (tanpa ahli waris = diproses spt pemberhentian).
+function effectiveAlasan(x) {
+  if (x.alasan !== "Meninggal Dunia") return x.alasan;
+  if (x.ahliWaris === "tanpa") return "Meninggal Dunia (Tanpa Ahli Waris)";
+  if (x.ahliWaris === "dengan") {
+    const aw = [x.namaAhliWaris?.trim(), x.hubunganAhliWaris].filter(Boolean).join(" — ");
+    return "Meninggal Dunia (Dengan Ahli Waris)" + (aw ? ` — Ahli Waris: ${aw}` : "");
+  }
+  return "Meninggal Dunia";
+}
+
+// Validasi khusus ahli waris; kembalikan pesan error atau "".
+function ahliWarisError(x) {
+  if (x.alasan !== "Meninggal Dunia") return "";
+  if (!x.ahliWaris) return "Pilih status ahli waris (dengan/tanpa).";
+  if (x.ahliWaris === "dengan" && !x.namaAhliWaris.trim()) return "Isi nama ahli waris.";
+  return "";
+}
+
+// Blok pilihan status ahli waris (muncul hanya bila Keperluan = Meninggal Dunia).
+function AhliWarisFields({ v, on }) {
+  if (v.alasan !== "Meninggal Dunia") return null;
+  return (
+    <>
+      <div className="field">
+        <label>Status Ahli Waris *</label>
+        <select value={v.ahliWaris} onChange={(e) => on("ahliWaris", e.target.value)}>
+          <option value="">— Pilih —</option>
+          <option value="tanpa">Tanpa Ahli Waris (diproses seperti Pemberhentian dengan Hormat)</option>
+          <option value="dengan">Dengan Ahli Waris</option>
+        </select>
+      </div>
+      {v.ahliWaris === "dengan" && (
+        <div className="p-grid2">
+          <div className="field">
+            <label>Nama Ahli Waris *</label>
+            <input value={v.namaAhliWaris} onChange={(e) => on("namaAhliWaris", e.target.value)} placeholder="Nama ahli waris" />
+          </div>
+          <div className="field">
+            <label>Hubungan</label>
+            <select value={v.hubunganAhliWaris} onChange={(e) => on("hubunganAhliWaris", e.target.value)}>
+              <option value="">— Pilih —</option>
+              {AHLI_WARIS_HUBUNGAN.map((h) => <option key={h} value={h}>{h}</option>)}
+            </select>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
 
 // Kolom pangkat sesuai jenis ASN (jenisASN hanya transien — tidak dikirim ke RPC).
 function PangkatField({ jenisASN, value, onJenis, onPangkat }) {
@@ -32,6 +84,7 @@ function PangkatField({ jenisASN, value, onJenis, onPangkat }) {
 const newItem = () => ({
   _id: Date.now() + Math.random(),
   nama: "", nip: "", jabatan: "", jenisASN: "PNS", pangkat: "", alasan: "Pensiun",
+  ahliWaris: "", namaAhliWaris: "", hubunganAhliWaris: "",
 });
 
 export default function Ajukan() {
@@ -49,6 +102,9 @@ export default function Ajukan() {
     jenisASN: "PNS",
     pangkat: "",
     alasan: "Pensiun",
+    ahliWaris: "",
+    namaAhliWaris: "",
+    hubunganAhliWaris: "",
   });
   const [files, setFiles] = useState([]);
   // Bulk
@@ -156,11 +212,16 @@ export default function Ajukan() {
       setErr("Nama, NIP, dan OPD wajib diisi.");
       return;
     }
+    const awe = ahliWarisError(f);
+    if (awe) {
+      setErr(awe);
+      return;
+    }
     setBusy(true);
     setErr("");
     const { data, error } = await ajukanPengajuan({
       nama: f.nama.trim(), nip: f.nip.trim(), opd: f.opd,
-      jabatan: f.jabatan.trim(), pangkat: f.pangkat, alasan: f.alasan,
+      jabatan: f.jabatan.trim(), pangkat: f.pangkat, alasan: effectiveAlasan(f),
     });
     if (error || !data) {
       setBusy(false);
@@ -182,13 +243,20 @@ export default function Ajukan() {
       setErr("Setiap pegawai wajib memiliki Nama dan NIP.");
       return;
     }
+    for (const it of items) {
+      const e = ahliWarisError(it);
+      if (e) {
+        setErr(`Pegawai "${it.nama.trim() || "-"}": ${e}`);
+        return;
+      }
+    }
     setBusy(true);
     setErr("");
     const rows = [];
     for (const it of items) {
       const { data, error } = await ajukanPengajuan({
         nama: it.nama.trim(), nip: it.nip.trim(), opd: bulkOPD,
-        jabatan: it.jabatan.trim(), pangkat: it.pangkat, alasan: it.alasan,
+        jabatan: it.jabatan.trim(), pangkat: it.pangkat, alasan: effectiveAlasan(it),
       });
       if (error || !data) rows.push({ nama: it.nama.trim(), error: error?.message || "gagal" });
       else rows.push({ nama: it.nama.trim(), id: data.id, kodeAkses: data.kodeAkses });
@@ -246,13 +314,15 @@ export default function Ajukan() {
               <div className="field">
                 <label>Keperluan SKPP</label>
                 <select value={f.alasan} onChange={(e) => set("alasan", e.target.value)}>
-                  {DAFTAR_KEPERLUAN.map((k) => <option key={k} value={k}>{k}</option>)}
+                  {DAFTAR_KEPERLUAN_ONLINE.map((k) => <option key={k} value={k}>{k}</option>)}
                 </select>
               </div>
 
+              <AhliWarisFields v={f} on={set} />
+
               <div className="field">
                 <label>Berkas Persyaratan</label>
-                <BerkasPersyaratan alasan={f.alasan} files={files} setFiles={setFiles} />
+                <BerkasPersyaratan alasan={effectiveAlasan(f)} files={files} setFiles={setFiles} />
               </div>
 
               <button className="btn btn-primary btn-block" disabled={busy} onClick={submitTunggal}>
@@ -291,7 +361,7 @@ export default function Ajukan() {
                     <div className="field" style={{ marginBottom: 8 }}>
                       <label>Keperluan</label>
                       <select value={it.alasan} onChange={(e) => setItem(it._id, "alasan", e.target.value)}>
-                        {DAFTAR_KEPERLUAN.map((k) => <option key={k} value={k}>{k}</option>)}
+                        {DAFTAR_KEPERLUAN_ONLINE.map((k) => <option key={k} value={k}>{k}</option>)}
                       </select>
                     </div>
                     <div className="field" style={{ marginBottom: 0 }}>
@@ -308,6 +378,9 @@ export default function Ajukan() {
                         {pangkatUntukStatus(it.jenisASN).map((p) => <option key={p} value={p}>{p}</option>)}
                       </select>
                     </div>
+                  </div>
+                  <div style={{ marginTop: it.alasan === "Meninggal Dunia" ? 8 : 0 }}>
+                    <AhliWarisFields v={it} on={(k, val) => setItem(it._id, k, val)} />
                   </div>
                 </div>
               ))}
