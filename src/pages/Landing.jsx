@@ -126,8 +126,93 @@ function Stats() {
   );
 }
 
+// Pengajuan online yang belum diverifikasi loket (jalur belum ditetapkan) ->
+// tampilan ringkas, bukan progress/timeline (yang butuh jalur A/B).
+function ResultCardOnlinePending({ p }) {
+  const ditolak = p.status === "ditolak";
+  return (
+    <>
+      <div className="res-header">
+        <div>
+          <div className="res-id">{p.id}</div>
+          <div className="res-name">{p.nama}</div>
+          <div className="res-meta">{[p.opd, p.alasan].filter(Boolean).join(" · ")}</div>
+        </div>
+        <div>
+          {ditolak ? (
+            <span className="badge-kembali" style={{ background: "#fee2e2", color: "#b91c1c" }}>⛔ Ditolak</span>
+          ) : (
+            <span className="badge-proses" style={{ background: "#fef3c7", color: "#92400e" }}>⏳ Menunggu Verifikasi Loket</span>
+          )}
+        </div>
+      </div>
+
+      <div className="res-info-grid" style={{ marginTop: 16 }}>
+        <div>
+          <div className="res-info-lbl">NIP</div>
+          <div className="res-info-val">{p.nip || "-"}</div>
+        </div>
+        <div>
+          <div className="res-info-lbl">OPD / Instansi</div>
+          <div className="res-info-val">{p.opd || "-"}</div>
+        </div>
+        <div>
+          <div className="res-info-lbl">Tgl. Diajukan</div>
+          <div className="res-info-val">{p.tanggalMasuk || "-"}</div>
+        </div>
+      </div>
+
+      {ditolak ? (
+        <div className="result-alert result-alert-warn">
+          <span>⛔</span>
+          <div>
+            <strong>Pengajuan Ditolak</strong>
+            <br />
+            <span style={{ fontSize: 12 }}>
+              {p.catatan ? <FormatCatatan raw={p.catatan} /> : "Hubungi Bidang Perbendaharaan untuk informasi lebih lanjut."}
+            </span>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="result-alert result-alert-ok">
+            <span>📥</span>
+            <div>
+              <strong>Pengajuan Diterima Sistem</strong>
+              <br />
+              <span style={{ fontSize: 12 }}>
+                Berkas Anda sedang menunggu verifikasi oleh loket Bidang Perbendaharaan. Jalur proses
+                (A/B) akan ditetapkan saat verifikasi.
+              </span>
+            </div>
+          </div>
+          {p.catatan && (
+            <div className="result-alert result-alert-warn">
+              <span>⚠️</span>
+              <div>
+                <strong>Perlu Dilengkapi</strong>
+                <br />
+                <span style={{ fontSize: 12 }}>
+                  <FormatCatatan raw={p.catatan} />
+                </span>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      <div style={{ marginTop: 16, fontSize: 11, color: "var(--g500)", textAlign: "center" }}>
+        Hubungi Bidang Perbendaharaan Bakeuda NTT untuk informasi lebih lanjut
+        <br />
+        📧 badankeuanganprovntt@gmail.com &nbsp;·&nbsp; 🕐 Senin–Jumat, 08.00–15.00 WITA
+      </div>
+    </>
+  );
+}
+
 // ── KARTU HASIL PELACAKAN ────────────────────────────────────────
 function ResultCard({ p }) {
+  if (p.status === "diajukan" || p.status === "ditolak") return <ResultCardOnlinePending p={p} />;
   const tahapan = p.jalur === "A" ? TAHAPAN_A : TAHAPAN_B;
   const prog = getProgress(p);
   const progColor = prog === 100 ? "#059669" : p.status === "kembali" ? "#d97706" : "#1d4ed8";
