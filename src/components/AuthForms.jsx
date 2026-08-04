@@ -236,7 +236,7 @@ function mapDaftarError(error) {
     return "Terlalu banyak percobaan. Mohon tunggu beberapa saat, lalu coba lagi.";
   if (/captcha/i.test(m))
     return "Verifikasi CAPTCHA gagal. Muat ulang halaman lalu coba lagi.";
-  return m && m !== "{}" ? m : "Pendaftaran gagal. Periksa data Anda, atau coba lagi.";
+  return m && m !== "{}" ? m : "Pendaftaran gagal. Kemungkinan email atau NIP sudah terdaftar — silakan masuk, atau gunakan email/NIP lain.";
 }
 
 export function DaftarForm({ onSwitchToMasuk }) {
