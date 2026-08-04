@@ -68,10 +68,10 @@ export function AuthProvider({ children }) {
         password,
         options: {
           captchaToken: captchaToken || undefined,
-          // Setelah klik tautan verifikasi, kembalikan ke aplikasi (origin yang
-          // sama saat mendaftar). URL ini WAJIB terdaftar di Supabase Auth →
-          // URL Configuration → Redirect URLs, jika tidak Supabase memakai Site URL.
-          emailRedirectTo: window.location.origin + "/masuk",
+          // Setelah klik tautan verifikasi, tampilkan halaman konfirmasi khusus
+          // (bukan langsung beranda). URL ini tercakup oleh Redirect URL
+          // "https://sipasti.my.id/**" di Supabase Auth → URL Configuration.
+          emailRedirectTo: window.location.origin + "/email-terkonfirmasi",
           data: { role, nama, username: nip, opd },
         },
       });

@@ -9,6 +9,7 @@ import Ajukan from "./pages/Ajukan.jsx";
 import PengajuanSaya from "./pages/PengajuanSaya.jsx";
 import Panduan from "./pages/Panduan.jsx";
 import Regulasi from "./pages/Regulasi.jsx";
+import EmailTerkonfirmasi from "./pages/EmailTerkonfirmasi.jsx";
 import { ResetSandiModal } from "./components/AuthForms.jsx";
 
 // Lindungi rute yang butuh login; tunggu status sesi termuat dulu. Bila belum
@@ -50,7 +51,8 @@ export default function App() {
   // /masuk & /daftar hanya mengalihkan ke beranda -- jangan tampilkan Navbar/
   // Footer sekilas supaya tak ada kedipan.
   const isAlih = loc.pathname === "/masuk" || loc.pathname === "/daftar";
-  const hasOwnChrome = isLanding || isAppPage || isAlih;
+  const isKonfirmasi = loc.pathname === "/email-terkonfirmasi";
+  const hasOwnChrome = isLanding || isAppPage || isAlih || isKonfirmasi;
 
   useEffect(() => {
     const onScroll = () => {
@@ -73,6 +75,7 @@ export default function App() {
         <Route path="/pengajuan-saya" element={<RequireAuth><PengajuanSaya /></RequireAuth>} />
         <Route path="/panduan" element={<RequireAuth><Panduan /></RequireAuth>} />
         <Route path="/regulasi" element={<RequireAuth><Regulasi /></RequireAuth>} />
+        <Route path="/email-terkonfirmasi" element={<EmailTerkonfirmasi />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       {!hasOwnChrome && <Footer />}
