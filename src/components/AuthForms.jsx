@@ -222,6 +222,23 @@ const ROLES = [
   { id: "bendahara", ic: IcoBuilding, rt: "Bendahara OPD", rd: "Mengajukan untuk banyak pegawai (bulk)" },
 ];
 
+// Terjemahkan error Supabase saat mendaftar menjadi pesan yang jelas & sopan.
+// Hindari menampilkan objek mentah / "{}" ke pengguna.
+function mapDaftarError(error) {
+  const m = (error?.message || error?.error_description || error?.msg || "").toString();
+  if (/already\s*registered|already.*exist|user.*exist|email.*taken/i.test(m))
+    return "Email ini sudah terdaftar. Silakan masuk, atau gunakan email lain.";
+  if (/duplicate key|profiles_username_key|unique constraint|database error saving new user/i.test(m))
+    return "NIP ini sudah terdaftar. Satu NIP hanya untuk satu akun — silakan masuk, atau periksa kembali NIP Anda.";
+  if (/password/i.test(m) && /(least|min|short|weak|6|8)/i.test(m))
+    return "Kata sandi terlalu lemah. Gunakan minimal 8 karakter.";
+  if (/rate limit|too many|429/i.test(m))
+    return "Terlalu banyak percobaan. Mohon tunggu beberapa saat, lalu coba lagi.";
+  if (/captcha/i.test(m))
+    return "Verifikasi CAPTCHA gagal. Muat ulang halaman lalu coba lagi.";
+  return m && m !== "{}" ? m : "Pendaftaran gagal. Periksa data Anda, atau coba lagi.";
+}
+
 export function DaftarForm({ onSwitchToMasuk }) {
   const { signUp } = useAuth();
   const [role, setRole] = useState("pemohon");
@@ -253,13 +270,19 @@ export function DaftarForm({ onSwitchToMasuk }) {
       return;
     }
     setBusy(true);
-    const { error } = await signUp({
+    const { data, error } = await signUp({
       email: f.email.trim(), password: f.password, role,
       nama: f.nama.trim(), nip: f.nip.trim(), opd: f.opd, captchaToken: captcha,
     });
     setBusy(false);
     if (error) {
-      setErr(error.message || "Gagal mendaftar.");
+      setErr(mapDaftarError(error));
+      return;
+    }
+    // Anti-enumerasi Supabase: bila email sudah terdaftar & terverifikasi,
+    // signUp tetap "sukses" tapi tanpa identitas baru -> perlakukan sbg error.
+    if (data?.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      setErr("Email ini sudah terdaftar. Silakan masuk, atau gunakan email lain.");
       return;
     }
     setDone(true);
