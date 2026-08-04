@@ -42,6 +42,14 @@ export function FormatCatatan({ raw }) {
         <Fragment key={"d" + i}>
           <br />• {r.dokumen}
           {r.batas ? ` (paling lambat ${fmtTgl(r.batas)})` : ""}
+          {r.tindakan ? (
+            <>
+              <br />
+              &nbsp;&nbsp;Keterangan: {r.tindakan}
+            </>
+          ) : (
+            ""
+          )}
         </Fragment>
       )
     );

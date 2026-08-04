@@ -1,0 +1,290 @@
+/* SI-PASTI — landing page (redesain), token & gaya khusus, dilingkupi .lp
+   supaya tidak bentrok dengan --navy/--gold/--blue/--teal global lama yang
+   masih dipakai Navbar/Footer/halaman portal lainnya. */
+.lp {
+  --lp-navy-950: #001026; --lp-navy-900: #001a40; --lp-navy-800: #002352;
+  --lp-navy-700: #002d63; --lp-navy-600: #003060; --lp-navy-500: #0a3d7a;
+  --lp-blue-700: #0a3f96; --lp-blue-600: #0048c0; --lp-blue-500: #1763d6;
+  --lp-blue-400: #4f8ce8; --lp-blue-300: #9cc0f3; --lp-blue-100: #dce9fb; --lp-blue-50: #eef5fe;
+  --lp-gold-700: #b07d1e; --lp-gold-600: #d3982f; --lp-gold-500: #e0a53c;
+  --lp-gold-400: #ecc06f; --lp-gold-100: #f9eccf;
+  --lp-grey-900: #161d2b; --lp-grey-800: #283143; --lp-grey-700: #3b465b;
+  --lp-grey-600: #586577; --lp-grey-500: #7a8699; --lp-grey-400: #a3adbd;
+  --lp-grey-300: #c9d1dd; --lp-grey-200: #e2e7ef; --lp-grey-100: #f1f4f9; --lp-grey-50: #f8fafc;
+  --lp-success-600: #1f8a4c; --lp-success-500: #27a35c; --lp-success-50: #e7f6ed;
+  --lp-danger-600: #d22f35; --lp-danger-50: #fdeced;
+  --lp-shadow-lg: 0 12px 28px rgba(0, 35, 82, 0.12), 0 4px 8px rgba(0, 35, 82, 0.06);
+  --lp-shadow-xl: 0 24px 80px rgba(0, 35, 82, 0.35);
+  --lp-ease: cubic-bezier(0.2, 0, 0, 1);
+  font-family: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+/* 100vh dibagi 0.8 utk mengompensasi zoom global 80% (html{zoom:.8}) --
+   satuan vh TIDAK ikut menyusut oleh zoom, jadi tanpa pembagian ini stage
+   hanya menutup 75% tinggi layar. */
+.lp-stage { position: relative; height: calc(100vh / 0.8); min-height: 700px; overflow: hidden; background: var(--lp-navy-950); }
+.lp-bg { position: absolute; inset: 0; overflow: hidden; }
+/* Carousel hero: semua gambar bertumpuk & ukurannya TETAP (tanpa zoom/Ken Burns);
+   pergantian hanya lewat crossfade opacity. */
+.lp-bg img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 3000ms var(--lp-ease); will-change: opacity; }
+.lp-bg img.on { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .lp-bg img { transition: opacity 300ms linear; } }
+@keyframes lpKenburns { from { transform: scale(1); } to { transform: scale(1.08); } }
+.lp-bg .scrim1 { position: absolute; inset: 0; background: linear-gradient(118deg, rgba(0,16,38,0.93) 0%, rgba(0,26,64,0.82) 42%, rgba(0,48,96,0.55) 72%, rgba(0,72,192,0.28) 100%); }
+.lp-bg .scrim2 { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,16,38,0.8) 0%, rgba(0,16,38,0) 26%); }
+@media (prefers-reduced-motion: reduce) { .lp-bg img { animation: none; } }
+
+.lp-frame { position: relative; z-index: 1; height: 100%; display: flex; flex-direction: column; will-change: transform; }
+
+/* Beranda: dua state bertumpuk di sel grid yang sama -> tinggi konten tetap
+   (= maksimum keduanya), tak ada pemusatan-ulang saat modal buka/tutup. */
+.lp-beranda-stack { display: grid; margin-top: 14px; }
+.lp-beranda-cell { grid-area: 1 / 1; transition: opacity 420ms var(--lp-ease); }
+.lp-beranda-cell .lp-lede { margin-top: 0; }
+
+/* ── HEADER ── */
+.lp-head { display: flex; align-items: center; gap: 32px; padding: 22px 64px 0; flex: none; flex-wrap: wrap; }
+.lp-brand { display: flex; align-items: center; gap: 14px; flex: none; cursor: pointer; }
+.lp-brand > img { height: 44px; width: auto; }
+.lp-brand-div { width: 1px; height: 36px; background: rgba(255,255,255,0.28); }
+
+/* Slot logo SI-PASTI di header: lebar TETAP 48px (tidak pernah collapse -> tak
+   ada reflow). Logo di dalamnya absolut; HANYA transform-nya yang beranimasi
+   (ditulis langsung ke DOM oleh JS) untuk "terbang" ke sebelah H1. */
+.lp-logo-slot { position: relative; align-self: center; width: 48px; height: 52px; flex: none; overflow: visible; transition: width 440ms var(--lp-ease); }
+.lp-logo-morph { position: absolute; left: 0; top: 0; height: 52px; width: auto; max-width: none; transform-origin: center; transition: transform 440ms var(--lp-ease); z-index: 6; pointer-events: none; will-change: transform; }
+
+/* Teks instansi hanya dirender saat modal terbuka -> muncul dgn fade opacity
+   di tempat (tanpa animasi lebar/geser). */
+.lp-brand-inst { display: flex; flex-direction: column; gap: 2px; pointer-events: none; animation: lpFadeIn 300ms var(--lp-ease) 80ms both; }
+.lp-brand-inst .l1 { font-size: 13.5px; font-weight: 700; letter-spacing: 0.02em; color: #fff; line-height: 1.25; white-space: nowrap; }
+.lp-brand-inst .l2 { font-size: 11.5px; font-weight: 600; letter-spacing: 0.04em; color: rgba(255,255,255,0.72); line-height: 1.25; white-space: nowrap; }
+.lp-nav { display: flex; align-items: center; gap: 4px; margin-left: auto; flex-wrap: wrap; }
+.lp-nav a { cursor: pointer; text-decoration: none; font-size: 13.5px; font-weight: 500; color: rgba(255,255,255,0.62); padding: 8px 12px 6px; border-bottom: 2px solid transparent; letter-spacing: 0.01em; transition: color 0.2s var(--lp-ease); white-space: nowrap; }
+.lp-nav a:hover { color: #fff; }
+.lp-nav a.on { color: #fff; font-weight: 700; border-bottom-color: var(--lp-gold-500); }
+.lp-auth { display: flex; align-items: center; gap: 10px; margin-left: 10px; flex: none; }
+.lp-auth-ghost { cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; height: 36px; padding: 0 16px; border-radius: 10px; border: 1.5px solid rgba(255,255,255,0.45); font-size: 13px; font-weight: 700; color: #fff; background: none; transition: border-color 0.2s, background 0.2s; white-space: nowrap; }
+.lp-auth-ghost:hover { border-color: #fff; background: rgba(255,255,255,0.1); }
+.lp-who { display: flex; align-items: center; gap: 8px; padding: 4px 12px 4px 4px; border-radius: 999px; background: rgba(255,255,255,0.08); }
+.lp-who-av { width: 24px; height: 24px; border-radius: 50%; background: var(--lp-gold-500); color: var(--lp-navy-800); font-size: 10px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.lp-who-name { color: rgba(255,255,255,0.9); font-size: 12.5px; font-weight: 600; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ── BUTTON ── */
+.lp-btn { cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: none; border-radius: 10px; font-family: inherit; font-weight: 700; letter-spacing: 0.01em; transition: background 0.2s var(--lp-ease), transform 0.12s, box-shadow 0.2s; white-space: nowrap; }
+.lp-btn-gold { background: var(--lp-gold-500); color: var(--lp-navy-900); }
+.lp-btn-gold:hover:not(:disabled) { background: var(--lp-gold-400); }
+.lp-btn-primary { background: var(--lp-navy-600); color: #fff; }
+.lp-btn-primary:hover:not(:disabled) { background: var(--lp-navy-700); }
+.lp-btn-secondary { background: #fff; color: var(--lp-navy-700); border: 1.5px solid var(--lp-grey-300); }
+.lp-btn-secondary:hover:not(:disabled) { background: var(--lp-blue-50); border-color: var(--lp-blue-300); }
+.lp-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.lp-btn-lg { height: 48px; padding: 0 26px; font-size: 15px; }
+.lp-btn-md { height: 44px; padding: 0 20px; font-size: 14px; }
+.lp-btn-sm { height: 36px; padding: 0 16px; font-size: 13px; }
+
+/* ── MAIN / SCREENS ── */
+.lp-main { flex: 1; position: relative; min-height: 0; }
+.lp-screen { position: absolute; inset: 0; overflow: auto; padding: 24px 128px 24px 64px; display: flex; flex-direction: column; justify-content: safe center; animation: lpPageIn 520ms var(--lp-ease) both; }
+@keyframes lpPageIn { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
+@keyframes lpFadeIn { from { opacity: 0; } to { opacity: 1; } }
+.lp-eyebrow { display: flex; align-items: center; gap: 12px; }
+.lp-eyebrow .bar { width: 30px; height: 2px; background: var(--lp-gold-500); flex: none; }
+.lp-eyebrow span { font-size: 11.5px; font-weight: 700; letter-spacing: 0.13em; color: rgba(255,255,255,0.85); text-transform: uppercase; }
+
+/* Ukuran H1 TETAP (tak dianimasikan) -> tak ada reflow/pemusatan-ulang saat
+   modal buka. Wordmark bergeser ke kanan HANYA lewat transform (composited),
+   memberi ruang bagi logo yang terbang. */
+.lp-h1 { margin: 18px 0 0; font-size: clamp(52px, calc(7.5vw / 0.8), 104px); font-weight: 800; letter-spacing: -0.02em; line-height: 0.95; color: #fff; white-space: nowrap; }
+.lp-h1-word { display: inline-block; transform-origin: left center; transition: transform 440ms var(--lp-ease); will-change: transform; }
+.lp-h1 b { color: var(--lp-gold-500); font-weight: 800; }
+.lp-tagline { margin: 16px 0 0; font-size: clamp(16px, 1.65vw, 23px); font-weight: 700; letter-spacing: 0.005em; color: rgba(255,255,255,0.92); max-width: 780px; }
+/* Slogan/tagline: serif display italic (khas tagline), aksen emas. */
+.lp-slogan { margin: 12px 0 0; font-family: "Playfair Display", Georgia, "Times New Roman", serif; font-style: italic; font-weight: 600; font-size: clamp(17px, 1.7vw, 23px); line-height: 1.3; letter-spacing: 0.01em; color: var(--lp-gold-400); max-width: 640px; }
+.lp-lede { margin: 14px 0 0; font-size: 13.5px; line-height: 1.7; color: rgba(255,255,255,0.72); max-width: 500px; }
+.lp-cta-row { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; margin-top: 28px; }
+.lp-cta-link { cursor: pointer; text-decoration: none; display: flex; align-items: center; gap: 10px; font-size: 14.5px; font-weight: 600; color: rgba(255,255,255,0.88); background: none; border: none; font-family: inherit; }
+.lp-cta-link:hover { color: var(--lp-gold-400); }
+.lp-cta-ring { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.5); flex: none; }
+
+.lp-stats { display: flex; flex-wrap: wrap; gap: 36px; margin-top: 46px; }
+.lp-stat { border-left: 1px solid rgba(255,255,255,0.25); padding-left: 18px; }
+.lp-stat-n { font-family: "IBM Plex Mono", monospace; font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; color: #fff; }
+.lp-stat-l { font-size: 11px; color: rgba(255,255,255,0.66); margin-top: 4px; max-width: 150px; }
+
+.lp-h2 { margin: 14px 0 0; font-size: clamp(30px, 4vw, 50px); font-weight: 800; letter-spacing: -0.02em; line-height: 1.06; color: #fff; max-width: 760px; }
+.lp-sub { margin: 12px 0 0; font-size: 14px; line-height: 1.6; color: rgba(255,255,255,0.7); max-width: 560px; }
+
+/* Alur */
+.lp-alur-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 28px; margin-top: 38px; max-width: 1100px; }
+.lp-alur-item { border-top: 1px solid rgba(255,255,255,0.3); padding-top: 16px; }
+.lp-alur-no { font-family: "IBM Plex Mono", monospace; font-size: 13px; font-weight: 600; color: var(--lp-gold-400); }
+.lp-alur-t { font-size: 17px; font-weight: 700; color: #fff; margin-top: 9px; }
+.lp-alur-d { margin: 7px 0 0; font-size: 13px; line-height: 1.55; color: rgba(255,255,255,0.68); }
+
+/* Lacak -- position absolute + inset 0 supaya konten terpusat vertikal
+   memenuhi area (sebelumnya menempel di atas). */
+.lp-lacak-wrap { position: absolute; inset: 0; overflow: auto; display: flex; align-items: safe center; gap: 56px; flex-wrap: wrap; padding: 24px 128px 24px 64px; animation: lpPageIn 520ms var(--lp-ease) both; }
+.lp-lacak-copy { flex: 1 1 360px; min-width: 300px; display: grid; align-items: center; }
+.lp-lacak-note { margin: 12px 0 0; font-size: 12.5px; color: rgba(255,255,255,0.55); }
+
+/* Blok bertumpuk (grid-area sama): konten normal memudar, blok info muncul
+   saat panel kanan terbuka -- pola trackFadeO/regFadeO prototipe handoff. */
+.lp-fadeblock { grid-area: 1 / 1; transition: opacity 420ms var(--lp-ease); }
+.lp-track-info { grid-area: 1 / 1; max-width: min(460px, calc(100vw / 0.8 - 580px)); transform: translateX(min(360px, 45vw)); opacity: 0; pointer-events: none; transition: opacity 420ms var(--lp-ease) 100ms; }
+.lp-track-big { margin-top: 18px; font-size: clamp(44px, calc(5vw / 0.8), 72px); font-weight: 800; letter-spacing: -0.02em; line-height: 0.98; color: #fff; }
+.lp-track-big b { color: var(--lp-gold-500); font-weight: 800; }
+.lp-track-sub { margin: 14px 0 0; font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.85); max-width: 400px; }
+.lp-track-note { margin: 18px 0 0; font-size: 12px; color: rgba(255,255,255,0.55); }
+.lp-card { flex: 0 1 440px; min-width: 320px; background: #fff; border-radius: 14px; padding: 24px 26px; box-shadow: var(--lp-shadow-xl); box-sizing: border-box; }
+.lp-card-title { font-size: 16.5px; font-weight: 700; color: var(--lp-navy-800); margin-bottom: 16px; }
+.lp-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.lp-field label { font-size: 12.5px; font-weight: 700; color: var(--lp-navy-800); }
+.lp-field input { height: 44px; padding: 0 14px; border: 1px solid var(--lp-grey-300); border-radius: 10px; font-family: inherit; font-size: 14px; color: var(--lp-navy-900); outline: none; transition: border-color 0.15s; box-sizing: border-box; }
+.lp-field input:focus { border-color: var(--lp-blue-500); box-shadow: 0 0 0 3px rgba(23,99,214,0.18); }
+.lp-field .hint { font-size: 11px; color: var(--lp-grey-500); }
+.lp-field-err { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; color: var(--lp-danger-600); background: var(--lp-danger-50); border-radius: 8px; padding: 9px 11px; margin-top: 2px; }
+
+/* Panduan -- ukuran & susunan kartu mengikuti prototipe handoff. */
+.lp-pand-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-top: 36px; max-width: 1180px; }
+.lp-pcard { background: #fff; border-radius: 14px; padding: 24px 26px; box-shadow: var(--lp-shadow-xl); box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; }
+.lp-pcard-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--lp-blue-600); }
+.lp-pcard-title { font-size: 18px; font-weight: 700; color: var(--lp-navy-800); }
+.lp-pcard ul { margin: 0; padding-left: 18px; font-size: 13.5px; line-height: 1.8; color: var(--lp-grey-800); }
+.lp-doc-card { background: #fff; border-radius: 14px; padding: 24px 26px; box-shadow: var(--lp-shadow-xl); border-top: 3px solid var(--lp-gold-500); box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; }
+.lp-doc-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.lp-doc-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--lp-gold-700); }
+.lp-doc-nav { display: flex; align-items: center; gap: 4px; }
+.lp-doc-nav button { width: 26px; height: 26px; border-radius: 999px; border: 1px solid var(--lp-grey-300); background: #fff; color: var(--lp-navy-700); display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; transition: background 200ms; }
+.lp-doc-nav button:hover { background: var(--lp-blue-50); border-color: var(--lp-blue-300); }
+.lp-doc-body { overflow: hidden; height: 236px; }
+.lp-doc-slide { display: flex; flex-direction: column; gap: 12px; animation: lpDocSlide 360ms var(--lp-ease) both; }
+@keyframes lpDocSlide { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: none; } }
+.lp-doc-title { font-size: 18px; font-weight: 700; color: var(--lp-navy-800); line-height: 1.35; }
+.lp-doc-slide ul { margin: 0; padding-left: 18px; font-size: 13.5px; line-height: 1.8; color: var(--lp-grey-800); }
+.lp-doc-note { font-size: 12px; color: var(--lp-grey-600); }
+.lp-doc-dots { display: flex; align-items: center; gap: 6px; }
+.lp-doc-dots button { height: 6px; border-radius: 999px; border: none; padding: 0; cursor: pointer; transition: all 0.25s var(--lp-ease); }
+
+/* Regulasi */
+/* Varian layar bertumpuk (daftar & blok info menempati sel grid yang sama).
+   PENTING: justify-content dinetralkan -- pada .lp-screen (flex kolom) nilai
+   "safe center" berarti penengah VERTIKAL, tapi dalam konteks grid ia berubah
+   makna jadi penengah HORIZONTAL sehingga konten kiri tampak bergeser. */
+.lp-screen-grid { display: grid; align-items: safe center; justify-content: stretch; grid-template-columns: 100%; }
+.lp-reg-info { grid-area: 1 / 1; max-width: min(420px, calc(100vw / 0.8 - 720px)); transform: translateX(min(320px, calc(32vw / 0.8))); opacity: 0; pointer-events: none; transition: opacity 420ms var(--lp-ease) 100ms; }
+.lp-reg-info-kode { margin-top: 18px; font-family: "IBM Plex Mono", monospace; font-size: clamp(32px, calc(3.6vw / 0.8), 52px); font-weight: 700; letter-spacing: -0.02em; line-height: 1.05; color: #fff; }
+.lp-reg-list { margin-top: 30px; max-width: 860px; border-top: 1px solid rgba(255,255,255,0.2); }
+.lp-reg-row { cursor: pointer; display: flex; align-items: baseline; gap: 22px; padding: 15px 10px; border-bottom: 1px solid rgba(255,255,255,0.14); text-decoration: none; transition: background 0.2s; background: none; border-left: none; border-right: none; border-top: none; width: 100%; text-align: left; font-family: inherit; }
+.lp-reg-row:hover { background: rgba(255,255,255,0.07); }
+.lp-reg-kode { font-family: "IBM Plex Mono", monospace; font-size: 12px; font-weight: 600; color: var(--lp-gold-400); flex: none; width: 155px; }
+.lp-reg-jdl { font-size: 15px; font-weight: 700; color: #fff; }
+.lp-reg-desk { font-size: 12.5px; color: rgba(255,255,255,0.6); margin-top: 3px; }
+.lp-reg-note { margin: 16px 0 0; font-size: 12px; color: rgba(255,255,255,0.5); max-width: 620px; }
+
+/* Kontak */
+.lp-kontak-grid { display: flex; flex-wrap: wrap; gap: 64px; margin-top: 36px; }
+.lp-kontak-label { font-size: 11.5px; font-weight: 700; letter-spacing: 0.11em; text-transform: uppercase; color: rgba(255,255,255,0.6); }
+.lp-kontak-addr { margin: 14px 0 0; font-size: 14px; line-height: 1.8; color: rgba(255,255,255,0.88); }
+.lp-kontak-addr a { color: #fff; text-decoration: none; border-bottom: 1px solid rgba(255,255,255,0.35); }
+.lp-kontak-addr a:hover { color: var(--lp-gold-400); }
+.lp-sos { display: flex; flex-direction: column; gap: 14px; margin-top: 16px; }
+.lp-sos a { display: flex; align-items: center; gap: 14px; text-decoration: none; color: rgba(255,255,255,0.88); font-size: 14.5px; font-weight: 600; }
+.lp-sos a:hover { color: var(--lp-gold-400); }
+/* Chip "kaca" netral + ikon garis putih (sesuai prototipe handoff), bukan
+   kotak warna brand masing-masing platform. */
+.lp-sos-ico { width: 40px; height: 40px; border-radius: 10px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.18); color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.lp-copy { margin: 38px 0 0; font-size: 12px; color: rgba(255,255,255,0.42); }
+
+/* Tombol berikutnya */
+/* Indikator hero (carousel) di sisi kanan: garis vertikal + titik-titik.
+   Tiap titik mewakili satu latar hero; hover memunculkan nama tempat. */
+.lp-hero-rail { position: absolute; right: 26px; top: 50%; transform: translateY(-50%); z-index: 3; display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 4px 0; }
+.lp-hero-rail::before { content: ""; position: absolute; top: 8px; bottom: 8px; left: 50%; width: 1.5px; background: rgba(255,255,255,0.28); transform: translateX(-50%); }
+.lp-hero-dot { position: relative; z-index: 1; width: 11px; height: 11px; padding: 0; border: none; border-radius: 50%; cursor: pointer; background: rgba(255,255,255,0.45); transition: transform 0.2s var(--lp-ease), background 0.2s, box-shadow 0.2s; }
+.lp-hero-dot:hover { background: rgba(255,255,255,0.85); transform: scale(1.25); }
+.lp-hero-dot.on { background: var(--lp-gold-500); box-shadow: 0 0 0 4px rgba(224,165,60,0.25); }
+.lp-hero-tip { position: absolute; right: 22px; top: 50%; transform: translate(8px, -50%); white-space: nowrap; background: rgba(0,16,38,0.92); color: #fff; font-size: 12.5px; font-weight: 600; letter-spacing: 0.01em; padding: 6px 12px; border-radius: 8px; box-shadow: var(--lp-shadow-lg); opacity: 0; pointer-events: none; transition: opacity 0.2s var(--lp-ease), transform 0.2s var(--lp-ease); }
+.lp-hero-dot:hover .lp-hero-tip, .lp-hero-dot:focus-visible .lp-hero-tip { opacity: 1; transform: translate(0, -50%); }
+
+/* Footer bar */
+.lp-footbar { display: flex; align-items: center; justify-content: flex-end; padding: 0 64px 26px; flex: none; }
+.lp-footbar span { font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.35); white-space: nowrap; }
+
+/* ── PANEL (drawer kanan: status pelacakan / detail regulasi) ── */
+.lp-backdrop { position: absolute; inset: 0; z-index: 3; background: rgba(0,16,38,0.28); opacity: 0; pointer-events: none; transition: opacity 380ms var(--lp-ease); }
+.lp-backdrop.show { opacity: 1; pointer-events: auto; }
+.lp-panel { position: absolute; top: 0; right: 0; bottom: 0; z-index: 5; width: min(480px, calc(94vw / 0.8)); background: #fff; box-shadow: var(--lp-shadow-xl); transform: translateX(105%); transition: transform 420ms var(--lp-ease); overflow-y: auto; overflow-x: hidden; }
+.lp-panel.open { transform: translateX(0); }
+.lp-panel.wide { width: min(560px, calc(94vw / 0.8)); }
+.lp-panel-left { left: 0; right: auto; width: min(440px, calc(94vw / 0.8)); transform: translateX(-105%); }
+.lp-panel-left.open { transform: translateX(0); }
+
+/* ── Blok alternatif "Melayani dengan Pasti" (tampil di Beranda saat modal Masuk/Daftar terbuka) ── */
+.lp-brand-bullets { display: flex; flex-direction: column; gap: 14px; margin-top: 24px; }
+.lp-brand-bullet { display: flex; align-items: center; gap: 12px; font-size: 14px; color: rgba(255,255,255,0.85); }
+.lp-brand-bullet .ic { display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 10px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.18); color: var(--lp-gold-400); flex: none; }
+.lp-panel-in { display: flex; flex-direction: column; gap: 16px; padding: 30px 32px 36px; min-height: 100%; box-sizing: border-box; }
+.lp-panel-head { display: flex; align-items: center; justify-content: space-between; }
+.lp-panel-close { cursor: pointer; display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 10px; color: var(--lp-grey-600); background: none; border: none; transition: background 0.2s; }
+.lp-panel-close:hover { background: var(--lp-grey-100); color: var(--lp-navy-800); }
+.lp-reg-tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--lp-grey-200); }
+.lp-reg-tabs button { cursor: pointer; text-decoration: none; white-space: nowrap; padding: 10px 12px; font-size: 12.5px; font-weight: 500; color: var(--lp-grey-600); border: none; background: none; border-bottom: 2px solid transparent; margin-bottom: -1px; font-family: inherit; }
+.lp-reg-tabs button.on { font-weight: 700; color: var(--lp-navy-800); border-bottom-color: var(--lp-gold-500); }
+.lp-reg-ringkasan { display: flex; flex-direction: column; gap: 12px; }
+.lp-reg-ringkasan p { margin: 0; font-size: 13px; line-height: 1.7; color: var(--lp-grey-800); text-align: justify; }
+.lp-reg-row-detail { border: 1px solid var(--lp-grey-200); border-radius: 10px; padding: 13px 15px; }
+.lp-reg-row-detail .lbl { font-size: 10.5px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--lp-blue-600); }
+.lp-reg-row-detail .s { font-size: 12.5px; color: var(--lp-grey-800); margin-top: 6px; line-height: 1.5; }
+.lp-reg-row-detail .r { margin-top: 8px; padding: 8px 11px; background: var(--lp-grey-50); border-radius: 8px; font-size: 12px; line-height: 1.5; color: var(--lp-grey-600); }
+/* Metadata dokumen (tab "Dokumen") -- gaya daftar (label kiri, nilai kanan)
+   dengan pemisah tipis, rapi untuk banyak baris & nilai panjang. */
+.lp-reg-meta { border: 1px solid var(--lp-grey-200); border-radius: 10px; overflow: hidden; }
+.lp-reg-meta-row { display: grid; grid-template-columns: 150px 1fr; gap: 14px; padding: 10px 14px; border-bottom: 1px solid var(--lp-grey-150); }
+.lp-reg-meta-row:last-child { border-bottom: none; }
+.lp-reg-meta-row:nth-child(odd) { background: var(--lp-grey-50); }
+.lp-reg-meta-row .k { font-size: 11.5px; font-weight: 600; color: var(--lp-grey-600); }
+.lp-reg-meta-row .v { font-size: 12.5px; font-weight: 600; color: var(--lp-navy-800); line-height: 1.45; }
+@media (max-width: 480px) {
+  .lp-reg-meta-row { grid-template-columns: 1fr; gap: 2px; }
+}
+
+/* ── Halaman dalam-aplikasi: Ajukan, Panduan & Regulasi (gaya prototipe) ── */
+/* Fallback warna agar kelas ini juga benar di halaman tanpa pembungkus .lp. */
+.lp-app-back { cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--lp-blue-600, #0048c0); background: none; border: none; padding: 0; font-family: inherit; margin-bottom: 4px; }
+.lp-app-back:hover { color: var(--lp-blue-700, #0a3f96); }
+.lp-app-eyebrow { display: flex; align-items: center; gap: 12px; margin-top: 18px; }
+.lp-app-eyebrow .bar { width: 26px; height: 2px; background: var(--lp-gold-500); flex: none; }
+.lp-app-eyebrow span { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; color: var(--lp-grey-600); text-transform: uppercase; }
+.lp-app-title { margin: 12px 0 0; font-size: 30px; font-weight: 800; letter-spacing: -0.02em; color: var(--lp-navy-800); }
+.lp-app-sub { margin: 8px 0 0; font-size: 13.5px; color: var(--lp-grey-600); max-width: 640px; }
+
+.lp-peran-card { background: var(--lp-navy-800); border-radius: 14px; padding: 24px 26px; box-shadow: 0 10px 28px rgba(0,35,82,0.22); display: flex; flex-direction: column; gap: 12px; }
+.lp-peran-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--lp-gold-400); }
+.lp-peran-title { font-size: 18px; font-weight: 700; color: #fff; }
+.lp-peran-list { margin: 0; padding-left: 18px; font-size: 13.5px; line-height: 1.8; color: rgba(255,255,255,0.85); }
+.lp-peran-unduh { margin-top: auto; display: inline-flex; align-items: center; justify-content: center; gap: 9px; padding: 10px 16px; border: 1px solid rgba(224,165,60,0.5); border-radius: 10px; cursor: pointer; background: none; font-family: inherit; font-size: 12.5px; font-weight: 700; color: var(--lp-gold-500); transition: background 200ms, border-color 200ms; }
+.lp-peran-unduh:hover { background: rgba(224,165,60,0.12); border-color: var(--lp-gold-500); }
+
+.lp-dok-card { background: #fff; border-radius: 14px; padding: 22px 24px; box-shadow: 0 6px 18px rgba(0,35,82,0.08); display: flex; flex-direction: column; gap: 12px; }
+.lp-appreg-row { display: grid; gap: 0 20px; align-items: center; padding: 18px 12px; border-bottom: 1px solid var(--lp-grey-200); cursor: pointer; border-radius: 8px; transition: background 200ms, grid-template-columns 300ms var(--lp-ease); }
+.lp-appreg-row:last-child { border-bottom: none; }
+.lp-appreg-row:hover { background: var(--lp-blue-50) !important; }
+
+/* ── Menu item (dropdown avatar AppHeader) ── */
+.lp-menu-item { width: 100%; display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; cursor: pointer; text-decoration: none; font-size: 13px; font-weight: 600; color: var(--lp-grey-800, #283143); background: none; border: none; font-family: inherit; text-align: left; }
+.lp-menu-item:hover { background: var(--lp-blue-50, #eef5fe); color: var(--lp-navy-800, #002352); }
+.lp-menu-item.danger { color: var(--lp-danger-600, #d22f35); }
+.lp-menu-item.danger:hover { background: var(--lp-danger-50, #fdeced); }
+
+@media (max-width: 860px) {
+  .lp-head { padding: 16px 22px 0; }
+  .lp-nav { display: none; }
+  .lp-screen, .lp-lacak-wrap { padding: 18px 22px 28px; }
+  .lp-footbar { padding: 0 22px 16px; }
+  .lp-lacak-wrap { flex-direction: column; align-items: stretch; }
+  .lp-card { flex: none; width: 100%; }
+  .lp-panel, .lp-panel.wide, .lp-panel-left { width: 100%; }
+  .lp-frame { transform: none !important; }
+  .lp-hero-rail { right: 12px; gap: 15px; }
+}

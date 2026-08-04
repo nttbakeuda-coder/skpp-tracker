@@ -7,6 +7,7 @@ import {
   BERKAS_MAX_FILES,
   BERKAS_ACCEPT_LABEL,
 } from "../refdata.js";
+import { IcoPaperclip, IcoFileText, IcoImage, IcoAlertTriangle } from "./Icons.jsx";
 
 const LAIN = "Dokumen lain / pelengkap";
 
@@ -15,17 +16,17 @@ function fmtSize(b) {
 }
 
 // Satu baris persyaratan: label dokumen + tombol unggah + daftar berkas terlampir.
-function ReqRow({ label, ket, items, onAdd, onRemove }) {
+function ReqRow({ label, ket, items, onAdd, onRemove, error }) {
   const inputRef = useRef(null);
   return (
-    <div className="req-row">
+    <div className={"req-row" + (error ? " invalid" : "")}>
       <div className="req-head">
         <div className="req-label">
           {label}
           {ket && <span className="req-ket">{ket}</span>}
         </div>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={() => inputRef.current?.click()}>
-          📎 Unggah
+        <button type="button" className="btn btn-ghost btn-sm" style={{ display: "inline-flex", alignItems: "center", gap: 5 }} onClick={() => inputRef.current?.click()}>
+          <IcoPaperclip size={13} /> Unggah
         </button>
         <input
           ref={inputRef}
@@ -43,7 +44,9 @@ function ReqRow({ label, ket, items, onAdd, onRemove }) {
         <div className="req-files">
           {items.map((x) => (
             <div className="p-file-row" key={x._id}>
-              <span>{x.file.type === "application/pdf" ? "📄" : "🖼️"}</span>
+              <span style={{ display: "inline-flex", color: "var(--g500)" }}>
+                {x.file.type === "application/pdf" ? <IcoFileText size={15} /> : <IcoImage size={15} />}
+              </span>
               <span className="fn" title={x.file.name}>{x.file.name}</span>
               <span style={{ color: "var(--g500)" }}>{fmtSize(x.file.size)}</span>
               <button type="button" className="p-link" style={{ color: "#dc2626" }} onClick={() => onRemove(x._id)}>
@@ -53,6 +56,7 @@ function ReqRow({ label, ket, items, onAdd, onRemove }) {
           ))}
         </div>
       )}
+      {error && <div className="field-err">{error}</div>}
     </div>
   );
 }
@@ -60,7 +64,7 @@ function ReqRow({ label, ket, items, onAdd, onRemove }) {
 // Unggah berkas terpilah PER PERSYARATAN (Lampiran 1). Grup dokumen yang tampil
 // menyesuaikan Keperluan SKPP (`alasan`). Setiap berkas ditandai `jenis` = nama
 // dokumen persyaratannya. `files` = [{ file, jenis, _id }] (bentuk sama dgn upload).
-export function BerkasPersyaratan({ alasan, files, setFiles }) {
+export function BerkasPersyaratan({ alasan, files, setFiles, showErrors }) {
   const [err, setErr] = useState("");
   const tampil = dpGrupTampil(alasan);
 
@@ -96,7 +100,7 @@ export function BerkasPersyaratan({ alasan, files, setFiles }) {
       </div>
       {err && (
         <div className="p-alert p-alert-err" style={{ marginBottom: 10 }}>
-          <span>⚠️</span>
+          <IcoAlertTriangle size={16} />
           <div>{err}</div>
         </div>
       )}
@@ -107,7 +111,10 @@ export function BerkasPersyaratan({ alasan, files, setFiles }) {
             <div className="req-grup" key={gi}>
               <div className="req-grup-title">{g.grup}</div>
               {g.items.map((it, ii) => (
-                <ReqRow key={ii} label={it.t} ket={it.ket} items={filesFor(it.t)} onAdd={addFor} onRemove={removeId} />
+                <ReqRow
+                  key={ii} label={it.t} ket={it.ket} items={filesFor(it.t)} onAdd={addFor} onRemove={removeId}
+                  error={showErrors && filesFor(it.t).length === 0 ? "Wajib diunggah." : ""}
+                />
               ))}
             </div>
           )

@@ -34,6 +34,11 @@ as $$
     'estimasiSelesai', p."estimasiSelesai",
     'tanggalSelesai',  p."tanggalSelesai",
     'nomorSKPP',       p."nomorSKPP",
+    'tanggalSerahTerima', p."tanggalSerahTerima",
+    'penerimaNama',    p."penerimaNama",
+    'penerimaStatus',  p."penerimaStatus",
+    'sumber',          p.sumber,
+    'sudahSurvei',     exists(select 1 from public."SurveiSKM" s where s."pengajuanId" = p.id),
     'riwayat', coalesce(
       (
         select jsonb_agg(

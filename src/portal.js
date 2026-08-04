@@ -2,6 +2,7 @@ import { supabase } from "./supabaseClient.js";
 import { BERKAS_MAX_MB, BERKAS_MAX_FILES, BERKAS_ACCEPT } from "./refdata.js";
 
 const BUCKET = "berkas-pengajuan";
+const BUCKET_SKPP = "skpp-final"; // hasil scan SKPP final (diunggah staf, diunduh pemohon)
 
 // Ajukan SATU pengajuan lewat RPC SECURITY DEFINER. Server yang membuat
 // id + kodeAkses (jalur dikosongkan; loket menetapkannya saat verifikasi).
@@ -9,6 +10,14 @@ const BUCKET = "berkas-pengajuan";
 // return: { data: { id, kodeAkses } | null, error }
 export async function ajukanPengajuan(payload) {
   return supabase.rpc("ajukan_pengajuan_online", { p: payload });
+}
+
+// Pengajuan BULK oleh Bendahara OPD: banyak pegawai sekaligus, menghasilkan
+// SATU kode akses BERSAMA (pembeda hanya nomor pengajuan tiap pegawai).
+// payload = { opd, items: [{ nama, nip, jabatan, pangkat, alasan }, ...] }
+// return: { data: { kodeAkses, rows: [{ id, nama }, ...] } | null, error }
+export async function ajukanBulk(payload) {
+  return supabase.rpc("ajukan_pengajuan_online_bulk", { p: payload });
 }
 
 // Bersihkan nama file agar aman jadi path storage.
@@ -37,12 +46,67 @@ export async function uploadBerkas({ uid, pengajuanId, file, jenis }) {
 export async function listPengajuanSaya(uid) {
   const { data, error } = await supabase
     .from("Pengajuan")
-    .select('id, nama, nip, opd, alasan, status, jalur, "kodeAkses", "tanggalMasuk", sumber')
+    .select('id, nama, nip, opd, jabatan, pangkat, alasan, status, jalur, "kodeAkses", "tanggalMasuk", sumber, "skppFinalPath"')
     .eq("submittedBy", uid);
   if (error) return { data: [], error };
   // Urutkan terbaru dulu berdasarkan nomor (SKPP-YYYY-NNNN).
   const sorted = (data || []).sort((a, b) => String(b.id).localeCompare(String(a.id)));
   return { data: sorted, error: null };
+}
+
+// Daftar berkas milik satu pengajuan (RLS: pengajuanId milik user, atau staf).
+export async function listBerkas(pengajuanId) {
+  const { data, error } = await supabase
+    .from("BerkasPengajuan")
+    .select("id, jenis, path, created_at")
+    .eq("pengajuanId", pengajuanId)
+    .order("created_at", { ascending: true });
+  return { data: data || [], error };
+}
+
+// URL bertanda-tangan (sementara) untuk melihat kembali berkas yang sudah diunggah.
+export async function berkasUrl(path, detik = 600) {
+  if (!path) return null;
+  const { data } = await supabase.storage.from(BUCKET).createSignedUrl(path, detik);
+  return data?.signedUrl || null;
+}
+
+// Unduh berkas secara paksa. Signed URL Supabase Storage lintas-domain, jadi
+// atribut `download` HTML biasa tidak dipatuhi browser -- ambil sebagai blob
+// dulu lalu picu unduhan lewat elemen <a> sementara (same-origin blob URL).
+export async function unduhBerkas(path, filename) {
+  const url = await berkasUrl(path);
+  if (!url) return false;
+  const res = await fetch(url);
+  const blob = await res.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = blobUrl;
+  a.download = filename || path.split("/").pop();
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(blobUrl);
+  return true;
+}
+
+// Unduh dokumen SKPP final (hasil scan) yang diunggah staf. RLS storage hanya
+// mengizinkan pemilik pengajuan (submittedBy = auth.uid()) membacanya.
+export async function unduhSkppFinal(path, filename) {
+  if (!path) return false;
+  const { data } = await supabase.storage.from(BUCKET_SKPP).createSignedUrl(path, 600);
+  if (!data?.signedUrl) return false;
+  const res = await fetch(data.signedUrl);
+  const blob = await res.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = blobUrl;
+  a.download = filename || path.split("/").pop();
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(blobUrl);
+  return true;
 }
 
 // Validasi kumpulan berkas sebelum unggah. return { ok, message }.

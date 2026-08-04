@@ -1,0 +1,57 @@
+name: Supabase Keep-Alive
+
+# Mencegah free-tier Supabase auto-pause (pause setelah 7 hari tanpa aktivitas).
+# Workflow ini menembak RPC publik `statistik` di tiap project — sebuah query DB
+# asli, jadi dihitung sebagai "aktivitas" dan timer 7 hari ter-reset.
+#
+# CATATAN:
+#   - Keep-alive HANYA mencegah pause di masa depan. Project yang SUDAH paused
+#     harus di-restore manual dulu lewat dashboard Supabase.
+#   - GitHub menonaktifkan schedule bila repo tidak ada commit selama 60 hari
+#     (owner akan diemail untuk mengaktifkan lagi). Repo yang aktif dikembangkan
+#     tidak terpengaruh.
+#   - Key di bawah adalah publishable/anon key (memang publik, sudah ada di
+#     frontend). Kalau mau, pindahkan ke GitHub Secrets/Variables.
+
+on:
+  schedule:
+    - cron: "17 3 * * *"   # tiap hari 03:17 UTC (11:17 WITA)
+  workflow_dispatch: {}      # tombol "Run workflow" manual di tab Actions
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false        # kalau satu project gagal, yang lain tetap dip-ing
+      matrix:
+        include:
+          - name: staging
+            url: https://sfcsmdzyqizqesomyxih.supabase.co
+            key: sb_publishable_rgCpoH39laHbgfdujA7eJg_enTTphsf
+          - name: main
+            url: https://phxyrferpnylgbbghgsn.supabase.co
+            key: sb_publishable_jqC1ntXlQai4j2X_e9x1vg_VZ0E6nBy
+    name: ping ${{ matrix.name }}
+    steps:
+      - name: Ping ${{ matrix.name }}
+        env:
+          SB_URL: ${{ matrix.url }}
+          SB_KEY: ${{ matrix.key }}
+        run: |
+          set -uo pipefail
+          echo "Ping $SB_URL (rpc/statistik)"
+          code=$(curl -sS -o /tmp/body.txt -w '%{http_code}' \
+            --retry 5 --retry-delay 15 --retry-all-errors -m 30 \
+            -X POST \
+            -H "apikey: $SB_KEY" \
+            -H "Authorization: Bearer $SB_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{}' \
+            "$SB_URL/rest/v1/rpc/statistik" || true)
+          echo "HTTP $code"
+          echo "Body: $(head -c 300 /tmp/body.txt 2>/dev/null || true)"
+          if [ "$code" != "200" ]; then
+            echo "::error::Ping GAGAL untuk $SB_URL (HTTP $code) — project mungkin paused/terhapus, atau RPC statistik tidak ada."
+            exit 1
+          fi
+          echo "OK — project aktif."

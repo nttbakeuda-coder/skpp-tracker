@@ -19,6 +19,7 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [recovery, setRecovery] = useState(false); // true saat user membuka tautan reset sandi dari email
 
   const loadProfile = useCallback(async (sess) => {
     const uid = sess?.user?.id;
@@ -35,6 +36,7 @@ export function AuthProvider({ children }) {
     });
     const { data: sub } = supabase.auth.onAuthStateChange(async (_event, sess) => {
       if (!alive) return;
+      if (_event === "PASSWORD_RECOVERY") setRecovery(true);
       setSession(sess);
       await loadProfile(sess);
     });
@@ -83,6 +85,22 @@ export function AuthProvider({ children }) {
     },
     async signOut() {
       await supabase.auth.signOut();
+    },
+    // ── Reset kata sandi via email (Supabase Auth) ──
+    recovery,
+    clearRecovery: () => setRecovery(false),
+    // Kirim email berisi tautan untuk menyetel ulang kata sandi. Tautan mengarah
+    // ke origin + "/masuk" (URL yang sama dgn verifikasi daftar -> sudah terdaftar
+    // di Supabase Auth > Redirect URLs). Saat dibuka, event PASSWORD_RECOVERY aktif.
+    async resetSandiEmail(email, captchaToken) {
+      return supabase.auth.resetPasswordForEmail((email || "").trim(), {
+        redirectTo: window.location.origin + "/masuk",
+        captchaToken: captchaToken || undefined,
+      });
+    },
+    // Setel kata sandi baru untuk sesi pemulihan yang sedang aktif.
+    async updateSandi(password) {
+      return supabase.auth.updateUser({ password });
     },
     refreshProfile,
   };

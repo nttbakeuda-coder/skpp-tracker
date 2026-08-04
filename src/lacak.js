@@ -1,5 +1,5 @@
 import { SUPABASE_URL, SB_HEADERS } from "./config.js";
-import { TAHAPAN_A, TAHAPAN_B } from "./data.jsx";
+import { tahapanUntuk } from "./data.jsx";
 
 // ── PELACAKAN via RPC "lacak" ────────────────────────────────────
 // Kontrak: public.lacak(p_id text, p_kode text) -> jsonb (SECURITY DEFINER).
@@ -46,7 +46,7 @@ export function normP(p) {
 }
 
 export function getProgress(p) {
-  const tahapan = p.jalur === "A" ? TAHAPAN_A : TAHAPAN_B;
+  const tahapan = tahapanUntuk(p);
   return Math.round((p.tahapSelesai.length / tahapan.length) * 100);
 }
 
@@ -56,4 +56,40 @@ export function fmtTgl(s) {
   if (!m) return s || "";
   const bln = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
   return `${+m[3]} ${bln[+m[2] - 1]} ${m[1]}`;
+}
+
+// Mekanisme penyelesaian hutang yang diminta staf pada pengembalian TERAKHIR
+// (jika ada) -- dipakai untuk menampilkan tombol unggah bukti yang sesuai
+// (Bukti Setoran / Berita Acara / Surat Pernyataan) di "Pengajuan Saya".
+// Kembalikan null bila bukan pengembalian karena hutang.
+export function mekanismeHutangAktif(riwayat) {
+  const logs = (riwayat || []).filter((r) => r && r.isKembali && r.catatan);
+  const last = logs[logs.length - 1];
+  if (!last) return null;
+  let d;
+  try {
+    d = JSON.parse(last.catatan);
+  } catch {
+    return null;
+  }
+  if (!d || d._type !== "FORMULIR_KEMBALI" || !d.alasan?.hutang) return null;
+  return d.mekanisme || {};
+}
+
+// Dokumen persyaratan yang diminta dilengkapi ulang pada pengembalian TERAKHIR
+// (jika ada) -- dipakai untuk menampilkan tombol unggah per dokumen di
+// "Pengajuan Saya". Kembalikan null bila bukan pengembalian karena dokumen kurang.
+export function dokumenKurangAktif(riwayat) {
+  const logs = (riwayat || []).filter((r) => r && r.isKembali && r.catatan);
+  const last = logs[logs.length - 1];
+  if (!last) return null;
+  let d;
+  try {
+    d = JSON.parse(last.catatan);
+  } catch {
+    return null;
+  }
+  if (!d || d._type !== "FORMULIR_KEMBALI" || !d.alasan?.dokumen) return null;
+  const rincian = (d.rincian || []).filter((r) => r && r.dokumen);
+  return rincian.length ? rincian : null;
 }

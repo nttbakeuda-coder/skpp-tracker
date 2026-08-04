@@ -14,7 +14,7 @@ export function Footer() {
                   <br />
                   Provinsi Nusa Tenggara Timur
                 </div>
-                <div className="ft-sub">SI-PASTI · Sistem Pemantauan Alur SKPP Terintegrasi</div>
+                <div className="ft-sub">KATONG SKPP · Kanal Administrasi Telusur Online dan Pengajuan SKPP</div>
               </div>
             </div>
           </div>
@@ -34,7 +34,7 @@ export function Footer() {
                 bakeuda.nttprov.go.id
               </a>
               <br />
-              🕐 Senin–Jumat, 08.00–15.00 WITA
+              Senin–Jumat, 08.00–15.00 WITA
             </div>
           </div>
           <div>
@@ -93,7 +93,7 @@ export function Footer() {
             © 2026 Badan Keuangan Daerah Provinsi Nusa Tenggara Timur. Hak cipta dilindungi
             undang-undang.
           </div>
-          <div className="footer-ver">SI-PASTI v1.0 · Dikembangkan oleh Dika Putra Gumay</div>
+          <div className="footer-ver">KATONG SKPP v1.0 · Dikembangkan oleh Dika Putra Gumay</div>
         </div>
       </div>
     </footer>
