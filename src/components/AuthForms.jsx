@@ -7,7 +7,7 @@ import { DAFTAR_OPD } from "../refdata.js";
 import { SearchableSelect } from "./SearchableSelect.jsx";
 import { PasswordField } from "./PasswordField.jsx";
 import { PasswordStrength } from "./PasswordStrength.jsx";
-import { IcoPerson, IcoBuilding, IcoMail, IcoCheckCircle, IcoAlertTriangle } from "./Icons.jsx";
+import { IcoPerson, IcoBuilding } from "./Icons.jsx";
 
 // Form Masuk & Daftar -- diekstrak dari halaman /masuk & /daftar supaya bisa
 // dipakai ULANG APA ADANYA (logika, validasi, CAPTCHA sama persis) baik pada
@@ -67,13 +67,11 @@ export function MasukForm({ onSuccess, onSwitchToDaftar }) {
       </p>
       {verified && !err && (
         <div className="p-alert p-alert-ok">
-          <IcoCheckCircle size={16} />
           <div>Email terverifikasi. Silakan masuk. Akun menunggu persetujuan admin sebelum dapat mengajukan.</div>
         </div>
       )}
       {err && (
         <div className="p-alert p-alert-err">
-          <IcoAlertTriangle size={16} />
           <div>{err}</div>
         </div>
       )}
@@ -132,7 +130,6 @@ function LupaSandiForm({ onBack, resetSandiEmail }) {
         <div className="portal-tag">Portal Pengajuan SKPP</div>
         <h1 className="portal-title">Tautan Terkirim</h1>
         <div className="p-alert p-alert-ok" style={{ marginTop: 4 }}>
-          <IcoCheckCircle size={16} />
           <div>Tautan pengaturan ulang kata sandi telah dikirim ke <strong>{email.trim()}</strong>. Buka email tersebut (periksa juga folder Spam), lalu ikuti tautannya untuk menyetel kata sandi baru.</div>
         </div>
         <button type="button" className="btn btn-primary btn-block" style={{ marginTop: 16 }} onClick={onBack}>Kembali ke Masuk</button>
@@ -147,7 +144,6 @@ function LupaSandiForm({ onBack, resetSandiEmail }) {
       <p className="portal-sub">Masukkan email akun Anda. Kami akan mengirimkan tautan untuk menyetel kata sandi baru.</p>
       {err && (
         <div className="p-alert p-alert-err">
-          <IcoAlertTriangle size={16} />
           <div>{err}</div>
         </div>
       )}
@@ -207,7 +203,6 @@ export function ResetSandiModal() {
         <p className="portal-sub">Masukkan kata sandi baru untuk akun Anda.</p>
         {err && (
           <div className="p-alert p-alert-err">
-            <IcoAlertTriangle size={16} />
             <div>{err}</div>
           </div>
         )}
@@ -297,10 +292,8 @@ export function DaftarForm({ onSwitchToMasuk }) {
   if (done) {
     return (
       <>
-        <div style={{ display: "flex", justifyContent: "center", color: "var(--teal)" }}><IcoMail size={40} /></div>
-        <h1 className="portal-title" style={{ textAlign: "center", marginTop: 12 }}>Pendaftaran Terkirim</h1>
+        <h1 className="portal-title" style={{ textAlign: "center" }}>Pendaftaran Terkirim</h1>
         <div className="p-alert p-alert-ok" style={{ marginTop: 12 }}>
-          <IcoCheckCircle size={16} />
           <div>
             Silakan cek email <strong>{f.email}</strong> untuk <strong>verifikasi</strong>. Setelah
             verifikasi, akun Anda menunggu <strong>persetujuan admin</strong> sebelum dapat mengajukan
@@ -324,7 +317,6 @@ export function DaftarForm({ onSwitchToMasuk }) {
       </p>
       {err && (
         <div className="p-alert p-alert-err">
-          <IcoAlertTriangle size={16} />
           <div>{err}</div>
         </div>
       )}
