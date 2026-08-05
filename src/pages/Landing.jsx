@@ -57,6 +57,7 @@ export default function Landing() {
   // transisi selalu mulai dari posisi identitas (tanpa lag 1-frame rAF).
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("masuk");
+  const [menuOpen, setMenuOpen] = useState(false); // menu hamburger (mobile)
   const [heroIdx, setHeroIdx] = useState(0);   // indeks latar hero aktif (carousel)
   const logoRef = useRef(null);   // <img> logo di header (yang terbang)
   const wordRef = useRef(null);   // <span> "KATONG SKPP" di H1 (yang bergeser)
@@ -100,6 +101,7 @@ export default function Landing() {
     setTrackOpen(false);
     setRegOpen(false);
     setModalOpen(false);
+    setMenuOpen(false);
   }
 
   function openModal(mode) {
@@ -107,6 +109,7 @@ export default function Landing() {
     setModalOpen(true);
     setTrackOpen(false);
     setRegOpen(false);
+    setMenuOpen(false);
     setPage(0); // tujuan morph ada di H1 Beranda -- pastikan halamannya aktif
   }
   const closeModal = () => setModalOpen(false);
@@ -284,6 +287,18 @@ export default function Landing() {
                 </>
               )}
             </div>
+            <button type="button" className="lp-burger" aria-label="Menu navigasi"
+              style={{ opacity: anyPanelOpen ? 0 : 1, pointerEvents: anyPanelOpen ? "none" : "auto" }}
+              onClick={() => setMenuOpen((v) => !v)}>
+              <span /><span /><span />
+            </button>
+            {menuOpen && !anyPanelOpen && (
+              <div className="lp-mobile-menu">
+                {NAV_LABELS.map((label, i) => (
+                  <button key={label} type="button" className={page === i ? "on" : ""} onClick={() => go(i)}>{label}</button>
+                ))}
+              </div>
+            )}
           </header>
 
           {/* Konten halaman */}

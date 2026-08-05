@@ -277,15 +277,22 @@
 .lp-menu-item.danger { color: var(--lp-danger-600, #d22f35); }
 .lp-menu-item.danger:hover { background: var(--lp-danger-50, #fdeced); }
 
+/* Hamburger & menu mobile: sembunyi di desktop. */
+.lp-burger { display: none; }
+.lp-mobile-menu { display: none; }
+
 @media (max-width: 860px) {
-  .lp-head { padding: 14px 18px 0; gap: 10px; }
-  /* Nav tidak lagi disembunyikan -> jadi strip mendatar yang bisa digulir,
-     supaya semua bagian (Lacak, Regulasi, dll.) tetap terjangkau di HP. */
-  .lp-nav { display: flex; order: 3; width: 100%; margin: 6px 0 0; overflow-x: auto; flex-wrap: nowrap; gap: 2px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
-  .lp-nav::-webkit-scrollbar { display: none; }
-  .lp-nav a { padding: 7px 11px 6px; font-size: 13px; white-space: nowrap; }
+  .lp-head { padding: 14px 18px 0; gap: 10px; position: relative; }
+  /* Navigasi lewat tombol hamburger + dropdown collapsible, bukan strip. */
+  .lp-nav { display: none; }
   .lp-auth { margin-left: auto; gap: 8px; }
   .lp-auth-ghost { height: 34px; padding: 0 12px; font-size: 12.5px; }
+  .lp-burger { display: inline-flex; flex-direction: column; justify-content: center; gap: 4px; width: 42px; height: 36px; padding: 0 10px; border: 1.5px solid rgba(255,255,255,0.45); border-radius: 10px; background: none; cursor: pointer; flex: none; }
+  .lp-burger span { display: block; height: 2px; width: 100%; background: #fff; border-radius: 2px; }
+  .lp-mobile-menu { display: flex; position: absolute; top: 100%; right: 18px; left: 18px; margin-top: 8px; z-index: 20; flex-direction: column; gap: 2px; background: rgba(0,16,38,0.97); border: 1px solid rgba(255,255,255,0.14); border-radius: 14px; box-shadow: var(--lp-shadow-xl); padding: 8px; animation: lpFadeIn 200ms var(--lp-ease); }
+  .lp-mobile-menu button { text-align: left; background: none; border: none; color: rgba(255,255,255,0.82); font-family: inherit; font-size: 15px; font-weight: 600; padding: 12px 14px; border-radius: 10px; cursor: pointer; }
+  .lp-mobile-menu button:hover { background: rgba(255,255,255,0.08); color: #fff; }
+  .lp-mobile-menu button.on { color: #fff; background: rgba(224,165,60,0.14); }
   .lp-screen, .lp-lacak-wrap { padding: 18px 20px 28px; }
   .lp-footbar { padding: 0 20px 14px; }
   .lp-lacak-wrap { flex-direction: column; align-items: stretch; }
