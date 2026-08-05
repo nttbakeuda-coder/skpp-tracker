@@ -42,7 +42,7 @@ const ALUR = [
 const HASH_PAGE = { prosedur: 1, alur: 1, lacak: 2, panduan: 3, regulasi: 4, kontak: 5 };
 
 export default function Landing() {
-  const { isLoggedIn, isApproved, profile, signOut } = useAuth();
+  const { isLoggedIn, isApproved, isRejected, profile, signOut } = useAuth();
   const nav = useNavigate();
   const loc = useLocation();
   const [page, setPage] = useState(() => HASH_PAGE[loc.hash.slice(1)] ?? 0);
@@ -265,10 +265,16 @@ export default function Landing() {
                       <span className="lp-who-name">{profile.nama}</span>
                     </div>
                   )}
-                  {isApproved && (
-                    <button type="button" className="lp-btn lp-btn-gold lp-btn-sm" onClick={() => nav("/ajukan")}>+ Ajukan SKPP</button>
+                  {isApproved ? (
+                    <>
+                      <button type="button" className="lp-btn lp-btn-gold lp-btn-sm" onClick={() => nav("/ajukan")}>+ Ajukan SKPP</button>
+                      <button type="button" className="lp-auth-ghost" onClick={() => nav("/pengajuan-saya")}>Pengajuan Saya</button>
+                    </>
+                  ) : (
+                    <span style={{ fontSize: 12.5, fontWeight: 600, whiteSpace: "nowrap", padding: "6px 13px", borderRadius: 999, ...(isRejected ? { color: "#fca5a5", background: "rgba(248,113,113,.12)", border: "1px solid rgba(248,113,113,.4)" } : { color: "#fcd34d", background: "rgba(251,191,36,.12)", border: "1px solid rgba(251,191,36,.4)" }) }}>
+                      {isRejected ? "Pendaftaran Ditolak" : "Menunggu Persetujuan"}
+                    </span>
                   )}
-                  <button type="button" className="lp-auth-ghost" onClick={() => nav("/pengajuan-saya")}>Pengajuan Saya</button>
                   <button type="button" className="lp-auth-ghost" onClick={async () => { await signOut(); openModal("masuk"); }}>Keluar</button>
                 </>
               ) : (
@@ -309,9 +315,15 @@ export default function Landing() {
                     </p>
                     <div className="lp-cta-row">
                       {isLoggedIn ? (
-                        <button type="button" className="lp-btn lp-btn-gold lp-btn-lg" onClick={() => nav(isApproved ? "/ajukan" : "/pengajuan-saya")}>
-                          {isApproved ? "Ajukan SKPP" : "Pengajuan Saya"}
-                        </button>
+                        isApproved ? (
+                          <button type="button" className="lp-btn lp-btn-gold lp-btn-lg" onClick={() => nav("/ajukan")}>Ajukan SKPP</button>
+                        ) : (
+                          <div style={{ display: "inline-flex", alignItems: "center", maxWidth: 460, lineHeight: 1.5, fontSize: 14, padding: "13px 18px", borderRadius: 12, ...(isRejected ? { color: "#fecaca", background: "rgba(248,113,113,.12)", border: "1px solid rgba(248,113,113,.35)" } : { color: "#fde68a", background: "rgba(251,191,36,.12)", border: "1px solid rgba(251,191,36,.35)" }) }}>
+                            {isRejected
+                              ? "Pendaftaran akun Anda tidak disetujui. Silakan hubungi Bidang Perbendaharaan."
+                              : "Akun Anda menunggu persetujuan Administrator. Anda dapat mengajukan SKPP setelah akun disetujui."}
+                          </div>
+                        )
                       ) : (
                         <>
                           <button type="button" className="lp-btn lp-btn-gold lp-btn-lg" onClick={() => openModal("masuk")}>Masuk ke Aplikasi</button>
