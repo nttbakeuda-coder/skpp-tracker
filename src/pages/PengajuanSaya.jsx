@@ -471,6 +471,11 @@ export default function PengajuanSaya() {
   // Empty state: baru disetujui / belum ada pengajuan -> tampilan sambutan.
   const kosong = !loadingList && !err && rows.length === 0;
   const namaDepan = (profile?.nama || "").split(",")[0].trim().split(" ")[0];
+  // Aturan: Pegawai (pemohon) hanya boleh 1 pengajuan aktif (non-ditolak);
+  // Bendahara boleh banyak. Sembunyikan tombol "Ajukan" bila pemohon sudah punya.
+  const isPemohon = profile?.role === "pemohon";
+  const sudahPunyaAktif = rows.some((r) => r.status !== "ditolak");
+  const bolehAjukan = !isPemohon || !sudahPunyaAktif;
 
   // Pengajuan SELESAI milik user yang BELUM disurvei -> wajib dinilai.
   const perluSurvei = surveiedIds == null ? [] : rows.filter((r) => r.status === "selesai" && !surveiedIds.includes(r.id));
@@ -500,7 +505,9 @@ export default function PengajuanSaya() {
               <div className="portal-tag">Portal Pengajuan SKPP</div>
               <h1 className="portal-title">Pengajuan Saya</h1>
             </div>
-            <button className="btn btn-gold btn-sm" onClick={() => nav("/ajukan")}>+ Ajukan Baru</button>
+            {bolehAjukan && (
+              <button className="btn btn-gold btn-sm" onClick={() => nav("/ajukan")}>+ Ajukan Baru</button>
+            )}
           </div>
           )}
 
@@ -544,10 +551,10 @@ export default function PengajuanSaya() {
               <h1 style={{ fontSize: "clamp(25px,4vw,33px)", fontWeight: 800, color: "var(--navy)", lineHeight: 1.15, margin: "8px 0 12px" }}>
                 Selamat datang{namaDepan ? `, ${namaDepan}` : ""}
               </h1>
-              <p style={{ maxWidth: 460, margin: "0 auto 28px", fontSize: 14.5, lineHeight: 1.65, color: "var(--g500)" }}>
-                Anda belum memiliki pengajuan. Ajukan penerbitan Surat Keterangan Penghentian
-                Pembayaran (SKPP) secara online — setiap tahap terpantau, transparan, dan dokumen
-                dapat diunduh begitu terbit.
+              <p style={{ maxWidth: 470, margin: "0 auto 28px", fontSize: 14.5, lineHeight: 1.65, color: "var(--g500)" }}>
+                {isPemohon
+                  ? "Ajukan penerbitan Surat Keterangan Penghentian Pembayaran (SKPP) untuk diri Anda sendiri. Setiap pegawai hanya memiliki satu pengajuan — prosesnya terpantau di tiap tahap dan dokumen dapat diunduh begitu terbit."
+                  : "Ajukan penerbitan SKPP untuk pegawai di OPD Anda — dapat sekaligus banyak pegawai dalam satu pengajuan kolektif. Setiap tahap terpantau, transparan, dan dokumen dapat diunduh begitu terbit."}
               </p>
               <button className="btn btn-gold" style={{ fontSize: 16, fontWeight: 700, padding: "14px 42px", borderRadius: 12 }} onClick={() => nav("/ajukan")}>
                 Ajukan SKPP

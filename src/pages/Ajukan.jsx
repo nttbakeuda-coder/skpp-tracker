@@ -190,12 +190,15 @@ export default function Ajukan() {
   // supaya diisi ulang secara sadar. Butuh cek daftar pengajuan milik user dulu.
   const [existingChecked, setExistingChecked] = useState(false);
   const [hasExisting, setHasExisting] = useState(false);
+  const [hasActive, setHasActive] = useState(false); // punya pengajuan non-ditolak
   useEffect(() => {
     if (!user) return;
     let alive = true;
     listPengajuanSaya(user.id).then(({ data }) => {
       if (!alive) return;
-      setHasExisting((data || []).length > 0);
+      const arr = data || [];
+      setHasExisting(arr.length > 0);
+      setHasActive(arr.some((r) => r.status !== "ditolak"));
       setExistingChecked(true);
     });
     return () => {
@@ -262,6 +265,24 @@ export default function Ajukan() {
               </div>
             )}
             <button className="btn btn-ghost btn-block" onClick={() => nav("/pengajuan-saya")}>Lihat Pengajuan Saya</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Gerbang: Pegawai (pemohon) hanya boleh 1 pengajuan aktif (non-ditolak).
+  if (role === "pemohon" && existingChecked && hasActive && !result) {
+    return (
+      <div className="portal-page in-app">
+        <AppHeader />
+        <div className="portal-wrap">
+          <div className="portal-card">
+            <h1 className="portal-title">Ajukan SKPP</h1>
+            <div className="p-alert p-alert-info" style={{ marginTop: 12 }}>
+              <div>Sebagai Pegawai, Anda hanya dapat memiliki <strong>satu pengajuan SKPP</strong>. Pengajuan Anda saat ini masih berjalan — pantau statusnya di Pengajuan Saya.</div>
+            </div>
+            <button className="btn btn-primary btn-block" style={{ marginTop: 12 }} onClick={() => nav("/pengajuan-saya")}>Lihat Pengajuan Saya</button>
           </div>
         </div>
       </div>
