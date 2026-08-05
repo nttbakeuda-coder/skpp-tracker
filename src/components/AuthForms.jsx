@@ -258,6 +258,10 @@ export function DaftarForm({ onSwitchToMasuk }) {
       setErr("Nama, NIP, email, dan OPD wajib diisi.");
       return;
     }
+    if (!/^\d{18}$/.test(f.nip.trim())) {
+      setErr("NIP harus tepat 18 digit angka.");
+      return;
+    }
     if (f.password.length < 8) {
       setErr("Kata sandi minimal 8 karakter.");
       return;
@@ -339,7 +343,7 @@ export function DaftarForm({ onSwitchToMasuk }) {
           </div>
           <div className="field">
             <label>NIP</label>
-            <input value={f.nip} onChange={(e) => set("nip", e.target.value)} placeholder="18 digit" style={{ fontFamily: "monospace" }} />
+            <input value={f.nip} onChange={(e) => set("nip", e.target.value.replace(/\D/g, "").slice(0, 18))} inputMode="numeric" maxLength={18} placeholder="18 digit angka" style={{ fontFamily: "monospace" }} />
           </div>
         </div>
         <SearchableSelect

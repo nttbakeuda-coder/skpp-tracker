@@ -68,6 +68,7 @@ function tunggalFieldErrors(f) {
   const e = {};
   if (!f.nama.trim()) e.nama = "Wajib diisi.";
   if (!f.nip.trim()) e.nip = "Wajib diisi.";
+  else if (!/^\d{18}$/.test(f.nip.trim())) e.nip = "NIP harus 18 digit angka.";
   if (!f.opd) e.opd = "Wajib dipilih.";
   if (!f.jabatan.trim()) e.jabatan = "Wajib diisi.";
   if (!f.pangkat) e.pangkat = "Wajib dipilih.";
@@ -79,6 +80,7 @@ function itemFieldErrors(it) {
   const e = {};
   if (!it.nama.trim()) e.nama = "Wajib diisi.";
   if (!it.nip.trim()) e.nip = "Wajib diisi.";
+  else if (!/^\d{18}$/.test(it.nip.trim())) e.nip = "NIP harus 18 digit angka.";
   if (!it.jabatan.trim()) e.jabatan = "Wajib diisi.";
   if (!it.pangkat) e.pangkat = "Wajib dipilih.";
   if (showTmt(it.alasan) && !it.tmt) e.tmt = "Wajib diisi.";
@@ -456,7 +458,7 @@ export default function Ajukan() {
                   <input value={f.nama} onChange={(e) => set("nama", e.target.value)} placeholder="Sesuai SK" />
                 </F>
                 <F label="NIP *" error={fe.nip}>
-                  <input value={f.nip} onChange={(e) => set("nip", e.target.value)} placeholder="18 digit" style={{ fontFamily: "monospace" }} />
+                  <input value={f.nip} onChange={(e) => set("nip", e.target.value.replace(/\D/g, "").slice(0, 18))} inputMode="numeric" maxLength={18} placeholder="18 digit angka" style={{ fontFamily: "monospace" }} />
                 </F>
               </div>
               <SearchableSelect
@@ -540,7 +542,7 @@ export default function Ajukan() {
                       <input value={it.nama} onChange={(e) => setItem(it._id, "nama", e.target.value)} placeholder="Sesuai SK" />
                     </F>
                     <F label="NIP *" error={ie.nip} style={{ marginBottom: 8 }}>
-                      <input value={it.nip} onChange={(e) => setItem(it._id, "nip", e.target.value)} placeholder="18 digit" style={{ fontFamily: "monospace" }} />
+                      <input value={it.nip} onChange={(e) => setItem(it._id, "nip", e.target.value.replace(/\D/g, "").slice(0, 18))} inputMode="numeric" maxLength={18} placeholder="18 digit angka" style={{ fontFamily: "monospace" }} />
                     </F>
                     <F label="Jabatan *" error={ie.jabatan} style={{ marginBottom: 8 }}>
                       <input value={it.jabatan} onChange={(e) => setItem(it._id, "jabatan", e.target.value)} placeholder="Jabatan terakhir sesuai SK" />
