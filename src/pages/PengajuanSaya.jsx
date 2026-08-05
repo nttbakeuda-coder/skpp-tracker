@@ -559,9 +559,6 @@ export default function PengajuanSaya() {
               <button className="btn btn-gold" style={{ fontSize: 16, fontWeight: 700, padding: "14px 42px", borderRadius: 12 }} onClick={() => nav("/ajukan")}>
                 Ajukan SKPP
               </button>
-              <p style={{ maxWidth: 420, margin: "22px auto 0", fontSize: 12.5, lineHeight: 1.6, color: "var(--g500)" }}>
-                Ingin melacak pengajuan sebelumnya? Gunakan menu <strong>Lacak</strong> di beranda dengan nomor &amp; kode akses.
-              </p>
             </div>
           ) : rows.length > 0 ? (
             <div style={{ overflowX: "auto", marginTop: 14 }}>
