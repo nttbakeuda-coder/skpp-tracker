@@ -295,11 +295,12 @@
   .lp-mobile-menu button.on { color: #fff; background: rgba(224,165,60,0.14); }
   .lp-screen, .lp-lacak-wrap { padding: 18px 20px 28px; }
   .lp-footbar { padding: 0 20px 14px; }
-  .lp-lacak-wrap { flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
+  .lp-lacak-wrap { flex-direction: column; flex-wrap: nowrap; align-items: stretch; justify-content: flex-start; gap: 16px; }
   .lp-lacak-copy { flex: none; min-width: 0; }
-  /* Netralkan geseran translateX (animasi split desktop) supaya tak ada overflow
-     horizontal / kartu meloncat ke kolom kanan di HP. */
-  .lp-track-info, .lp-reg-info { transform: none !important; }
+  /* Blok info split-desktop (translateX + max-width negatif di HP membuatnya
+     super-tinggi & mendorong konten ke bawah) -> sembunyikan di HP; hasil
+     pelacakan tetap tampil di panel penuh. */
+  .lp-track-info, .lp-reg-info { display: none !important; }
   .lp-card { flex: none; width: 100%; }
   .lp-panel, .lp-panel.wide, .lp-panel-left { width: 100%; }
   .lp-frame { transform: none !important; }
