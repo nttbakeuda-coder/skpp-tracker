@@ -468,6 +468,9 @@ export default function PengajuanSaya() {
   const selesai = rows.filter((r) => r.status === "selesai").length;
   const openRow = openFor ? rows.find((r) => r.id === openFor) || null : null;
   const respondenTipe = profile?.role === "bendahara" ? "bendahara" : "pemohon";
+  // Empty state: baru disetujui / belum ada pengajuan -> tampilan sambutan.
+  const kosong = !loadingList && !err && rows.length === 0;
+  const namaDepan = (profile?.nama || "").split(",")[0].trim().split(" ")[0];
 
   // Pengajuan SELESAI milik user yang BELUM disurvei -> wajib dinilai.
   const perluSurvei = surveiedIds == null ? [] : rows.filter((r) => r.status === "selesai" && !surveiedIds.includes(r.id));
@@ -491,6 +494,7 @@ export default function PengajuanSaya() {
       <AppHeader />
       <div className="portal-wrap wide">
         <div className="portal-card">
+          {!kosong && (
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
             <div>
               <div className="portal-tag">Portal Pengajuan SKPP</div>
@@ -498,6 +502,7 @@ export default function PengajuanSaya() {
             </div>
             <button className="btn btn-gold btn-sm" onClick={() => nav("/ajukan")}>+ Ajukan Baru</button>
           </div>
+          )}
 
           {!loadingList && rows.length > 0 && (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 14, marginTop: 18 }}>
@@ -533,12 +538,25 @@ export default function PengajuanSaya() {
 
           {loadingList ? (
             <div style={{ padding: 30, textAlign: "center", color: "var(--g500)" }}>Memuat…</div>
-          ) : rows.length === 0 ? (
-            <div className="p-alert p-alert-info" style={{ marginTop: 14 }}>
-              <IcoInbox size={16} />
-              <div>Belum terdapat pengajuan. Gunakan tombol <strong>Ajukan Baru</strong> untuk membuat pengajuan.</div>
+          ) : kosong ? (
+            <div style={{ textAlign: "center", padding: "clamp(28px,6vw,56px) 16px 40px" }}>
+              <div className="portal-tag" style={{ display: "inline-flex", marginBottom: 2 }}>Portal Pengajuan SKPP</div>
+              <h1 style={{ fontSize: "clamp(25px,4vw,33px)", fontWeight: 800, color: "var(--navy)", lineHeight: 1.15, margin: "8px 0 12px" }}>
+                Selamat datang{namaDepan ? `, ${namaDepan}` : ""}
+              </h1>
+              <p style={{ maxWidth: 460, margin: "0 auto 28px", fontSize: 14.5, lineHeight: 1.65, color: "var(--g500)" }}>
+                Anda belum memiliki pengajuan. Ajukan penerbitan Surat Keterangan Penghentian
+                Pembayaran (SKPP) secara online — setiap tahap terpantau, transparan, dan dokumen
+                dapat diunduh begitu terbit.
+              </p>
+              <button className="btn btn-gold" style={{ fontSize: 16, fontWeight: 700, padding: "14px 42px", borderRadius: 12 }} onClick={() => nav("/ajukan")}>
+                Ajukan SKPP
+              </button>
+              <p style={{ maxWidth: 420, margin: "22px auto 0", fontSize: 12.5, lineHeight: 1.6, color: "var(--g500)" }}>
+                Ingin melacak pengajuan sebelumnya? Gunakan menu <strong>Lacak</strong> di beranda dengan nomor &amp; kode akses.
+              </p>
             </div>
-          ) : (
+          ) : rows.length > 0 ? (
             <div style={{ overflowX: "auto", marginTop: 14 }}>
               <table className="p-table">
                 <thead>
@@ -613,14 +631,16 @@ export default function PengajuanSaya() {
                 </tbody>
               </table>
             </div>
-          )}
+          ) : null}
 
+          {!kosong && rows.length > 0 && (
           <p style={{ marginTop: 16, fontSize: 12, color: "var(--g500)" }}>
             Gunakan <strong>Lacak</strong> untuk meninjau status dan riwayat pengajuan. Apabila berkas
             dikembalikan karena dokumen tidak lengkap/tidak sesuai atau kewajiban pelunasan, tombol unggah
             dokumen/bukti akan tersedia di bawah keterangan tahap terkait. Gunakan <strong>Dokumen</strong> untuk
             meninjau berkas yang telah diunggah atau melengkapinya selama status masih <strong>Diajukan</strong>.
           </p>
+          )}
         </div>
       </div>
 
