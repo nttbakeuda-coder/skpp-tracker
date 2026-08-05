@@ -1,10 +1,18 @@
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../auth.jsx";
 import { IcoCheckCircle } from "../components/Icons.jsx";
 
 // Halaman tujuan tautan verifikasi email (emailRedirectTo). Pemohon baru selesai
 // mengonfirmasi alamat email -> tampilkan konfirmasi sederhana + status menunggu
-// persetujuan admin, bukan langsung dilempar ke beranda.
+// persetujuan admin. Verifikasi memicu auto-login Supabase, tapi akun masih
+// menunggu persetujuan -> keluarkan sesi agar pengguna kembali ke beranda publik.
 export default function EmailTerkonfirmasi() {
+  const { signOut } = useAuth();
+  useEffect(() => {
+    signOut();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   return (
     <div
       style={{

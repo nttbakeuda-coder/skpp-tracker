@@ -17,7 +17,7 @@ import { ResetSandiModal } from "./components/AuthForms.jsx";
 // /masuk mandiri yang sudah dihapus) supaya UX seragam saat logout / akses
 // rute terproteksi tanpa sesi.
 function RequireAuth({ children }) {
-  const { isLoggedIn, loading } = useAuth();
+  const { isLoggedIn, isApproved, loading } = useAuth();
   if (loading)
     return (
       <div className="portal-page">
@@ -27,6 +27,8 @@ function RequireAuth({ children }) {
       </div>
     );
   if (!isLoggedIn) return <Navigate to="/" state={{ masuk: true }} replace />;
+  // Akun belum disetujui tidak boleh masuk area pemilik -> kembali ke beranda.
+  if (!isApproved) return <Navigate to="/" replace />;
   return children;
 }
 

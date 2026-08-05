@@ -77,11 +77,21 @@ export function AuthProvider({ children }) {
       });
     },
     async signIn({ email, password, captchaToken }) {
-      return supabase.auth.signInWithPassword({
+      const res = await supabase.auth.signInWithPassword({
         email,
         password,
         options: { captchaToken: captchaToken || undefined },
       });
+      if (res.error) return res;
+      // Blokir akun yang BELUM disetujui: tak boleh masuk sampai admin menyetujui.
+      // Ambil status profil, lalu keluarkan sesi bila pending/rejected.
+      const uid = res.data?.user?.id;
+      const prof = uid ? await fetchProfile(uid) : null;
+      if (prof && (prof.akun_status === "pending" || prof.akun_status === "rejected")) {
+        await supabase.auth.signOut();
+        return { data: { user: null, session: null }, error: { code: "not_approved", akun_status: prof.akun_status } };
+      }
+      return res;
     },
     async signOut() {
       await supabase.auth.signOut();

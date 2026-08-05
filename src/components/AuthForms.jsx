@@ -41,8 +41,14 @@ export function MasukForm({ onSuccess, onSwitchToDaftar }) {
     const { error } = await signIn({ email: email.trim(), password, captchaToken: captcha });
     setBusy(false);
     if (error) {
+      if (error.code === "not_approved") {
+        setErr(error.akun_status === "rejected"
+          ? "Pendaftaran akun Anda tidak disetujui. Untuk informasi lebih lanjut, silakan hubungi Bidang Perbendaharaan."
+          : "Akun Anda masih menunggu verifikasi dan persetujuan admin. Anda akan diberi tahu melalui email saat akun disetujui atau ditolak.");
+        return;
+      }
       const m = error.message || "";
-      if (/confirm/i.test(m)) setErr("Email belum diverifikasi. Cek kotak masuk Anda.");
+      if (/confirm/i.test(m)) setErr("Email belum diverifikasi. Cek kotak masuk Anda (termasuk folder Spam).");
       else if (/invalid/i.test(m)) setErr("Email atau kata sandi salah.");
       else setErr(m || "Gagal masuk.");
       return;
