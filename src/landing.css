@@ -278,13 +278,45 @@
 .lp-menu-item.danger:hover { background: var(--lp-danger-50, #fdeced); }
 
 @media (max-width: 860px) {
-  .lp-head { padding: 16px 22px 0; }
-  .lp-nav { display: none; }
-  .lp-screen, .lp-lacak-wrap { padding: 18px 22px 28px; }
-  .lp-footbar { padding: 0 22px 16px; }
+  .lp-head { padding: 14px 18px 0; gap: 10px; }
+  /* Nav tidak lagi disembunyikan -> jadi strip mendatar yang bisa digulir,
+     supaya semua bagian (Lacak, Regulasi, dll.) tetap terjangkau di HP. */
+  .lp-nav { display: flex; order: 3; width: 100%; margin: 6px 0 0; overflow-x: auto; flex-wrap: nowrap; gap: 2px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .lp-nav::-webkit-scrollbar { display: none; }
+  .lp-nav a { padding: 7px 11px 6px; font-size: 13px; white-space: nowrap; }
+  .lp-auth { margin-left: auto; gap: 8px; }
+  .lp-auth-ghost { height: 34px; padding: 0 12px; font-size: 12.5px; }
+  .lp-screen, .lp-lacak-wrap { padding: 18px 20px 28px; }
+  .lp-footbar { padding: 0 20px 14px; }
   .lp-lacak-wrap { flex-direction: column; align-items: stretch; }
   .lp-card { flex: none; width: 100%; }
   .lp-panel, .lp-panel.wide, .lp-panel-left { width: 100%; }
   .lp-frame { transform: none !important; }
-  .lp-hero-rail { right: 12px; gap: 15px; }
+  .lp-hero-rail { right: 10px; gap: 13px; }
+}
+
+@media (max-width: 560px) {
+  /* Hero: izinkan wordmark membungkus (tak lagi nowrap) supaya tak terpotong;
+     satuan vw tetap dibagi 0.8 mengikuti sistem zoom global. */
+  .lp-h1 { font-size: clamp(44px, calc(11vw / 0.8), 96px); white-space: normal; line-height: 1.0; }
+  .lp-h1-word { transform: none !important; }
+  .lp-tagline { font-size: clamp(15px, calc(3.6vw / 0.8), 21px); }
+  .lp-slogan { font-size: clamp(15px, calc(3.6vw / 0.8), 21px); }
+  .lp-lede { font-size: 13.5px; }
+  .lp-stats { gap: 18px 26px; margin-top: 26px; }
+  .lp-stat-n { font-size: 22px; }
+  .lp-stat-l { font-size: 10.5px; }
+  .lp-h2 { font-size: clamp(28px, calc(7vw / 0.8), 48px); }
+  .lp-cta-row { gap: 14px; margin-top: 22px; }
+  .lp-track-big { font-size: clamp(34px, calc(9vw / 0.8), 64px); }
+  .lp-reg-info-kode { font-size: clamp(28px, calc(7vw / 0.8), 46px); }
+  .lp-hero-rail { display: none; }
+  .lp-brand > img { height: 38px; }
+  .lp-brand-div { height: 30px; }
+  .lp-logo-slot { width: 42px; height: 46px; }
+  .lp-logo-morph { height: 46px; }
+  .lp-eyebrow span { font-size: 10.5px; letter-spacing: 0.1em; }
+  .lp-footbar span { font-size: 10.5px; }
+  .lp-kontak-grid { gap: 28px; }
+  .lp-alur-grid, .lp-pand-grid { gap: 20px; }
 }
