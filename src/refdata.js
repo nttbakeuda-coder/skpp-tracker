@@ -110,18 +110,15 @@ export const DAFTAR_DOKUMEN_SKPP = [
 // untuk semua jenis, grup lain muncul sesuai Keperluan SKPP (lihat dpGrupTampil).
 export const DP_DOKUMEN_GRUP = [
   { grup: "I. DOKUMEN UMUM (WAJIB UNTUK SEMUA JENIS SKPP)", items: [
-    { t: "Fotokopi KTP Pegawai yang Bersangkutan" },
-    { t: "Fotokopi Kartu Keluarga yang masih berlaku" },
     { t: "Pas foto terbaru berlatar merah/biru" },
+    { t: "Fotokopi Kartu Keluarga yang masih berlaku" },
   ] },
   { grup: "II. DOKUMEN TAMBAHAN — PENSIUN", items: [
-    { t: "SK Pensiun / Persetujuan Pensiun yang telah ditetapkan oleh BKN / Pejabat Pembina Kepegawaian" },
-    { t: "Fotokopi Akta Perkawinan / Buku Nikah (jika ada tanggungan suami/istri)" },
-    { t: "Fotokopi Akta Kelahiran anak yang masih menjadi tanggungan (usia < 25 tahun / belum bekerja)" },
+    { t: "SK Pensiun" },
   ] },
   { grup: "III. DOKUMEN TAMBAHAN — PINDAH / MUTASI", items: [
-    { t: "SK Pindah / Mutasi dari instansi yang berwenang" },
-    { t: "Surat Pernyataan Melaksanakan Tugas (SPMT) di instansi tujuan" },
+    { t: "SK Pindah" },
+    { t: "Persetujuan Mutasi dari pejabat berwenang Pemerintah Provinsi NTT" },
   ] },
   { grup: "IV. DOKUMEN TAMBAHAN — PEMBERHENTIAN", items: [
     { t: "SK Pemberhentian yang telah ditetapkan oleh pejabat berwenang" },
@@ -131,6 +128,7 @@ export const DP_DOKUMEN_GRUP = [
     { t: "Akta Kematian Pegawai yang bersangkutan (asli atau dilegalisir)" },
     { t: "Fotokopi Akta Perkawinan / Buku Nikah (dilegalisir)" },
     { t: "Fotokopi KTP Ahli Waris" },
+    { t: "Fotokopi Akta Kelahiran Anak (bila ahli waris adalah anak)" },
   ] },
 ];
 
