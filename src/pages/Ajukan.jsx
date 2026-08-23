@@ -208,6 +208,16 @@ export default function Ajukan() {
     };
   }, [user]);
 
+  // OPD form tunggal = OPD profil pengaju & field DIKUNCI, jadi SELALU diisi
+  // otomatis dari profil (terpisah dari prefill Nama/NIP yang hanya untuk
+  // pengajuan pertama). Tanpa ini, pengaju yang sudah pernah mengajukan mendapat
+  // OPD kosong + terkunci sehingga submit terganjal "OPD wajib".
+  const [opdPrefilledFor, setOpdPrefilledFor] = useState(null);
+  if (profile && opdPrefilledFor !== profile.id) {
+    setOpdPrefilledFor(profile.id);
+    setF((s) => ({ ...s, opd: s.opd || profile.opd || "" }));
+  }
+
   const [identityPrefilledFor, setIdentityPrefilledFor] = useState(null);
   if (profile && existingChecked && !hasExisting && identityPrefilledFor !== profile.id) {
     setIdentityPrefilledFor(profile.id);
@@ -218,7 +228,6 @@ export default function Ajukan() {
       // diisi otomatis dari profil.
       nama: role === "bendahara" ? s.nama : (s.nama || profile.nama || ""),
       nip:  role === "bendahara" ? s.nip  : (s.nip  || profile.username || ""),
-      opd: s.opd || profile.opd || "",
     }));
   }
 
@@ -273,8 +282,11 @@ export default function Ajukan() {
     );
   }
 
-  // Gerbang: Pegawai (pemohon) hanya boleh 1 pengajuan aktif (non-ditolak).
-  if (role === "pemohon" && existingChecked && hasActive && !result) {
+  // Gerbang: Pegawai (pemohon) hanya boleh 1 pengajuan. Bila sudah punya (aktif
+  // maupun ditolak), tidak membuat baru — yang ditolak diajukan kembali dari
+  // halaman Pengajuan Saya (tanpa input ulang).
+  if (role === "pemohon" && existingChecked && hasExisting && !result) {
+    const hanyaDitolak = !hasActive; // punya pengajuan & semuanya ditolak
     return (
       <div className="portal-page in-app">
         <AppHeader />
@@ -282,7 +294,12 @@ export default function Ajukan() {
           <div className="portal-card">
             <h1 className="portal-title">Ajukan SKPP</h1>
             <div className="p-alert p-alert-info" style={{ marginTop: 12 }}>
-              <div>Sebagai Pegawai, Anda hanya dapat memiliki <strong>satu pengajuan SKPP</strong>. Pengajuan Anda saat ini masih berjalan — pantau statusnya di Pengajuan Saya.</div>
+              <div>
+                Sebagai Pegawai, Anda hanya dapat memiliki <strong>satu pengajuan SKPP</strong>.{" "}
+                {hanyaDitolak
+                  ? <>Pengajuan Anda sebelumnya ditolak — Anda dapat <strong>mengajukannya kembali tanpa mengisi ulang</strong> lewat tombol <strong>“Ajukan kembali”</strong> di halaman Pengajuan Saya.</>
+                  : <>Pengajuan Anda saat ini masih berjalan — pantau statusnya di Pengajuan Saya.</>}
+              </div>
             </div>
             <button className="btn btn-primary btn-block" style={{ marginTop: 12 }} onClick={() => nav("/pengajuan-saya")}>Lihat Pengajuan Saya</button>
           </div>

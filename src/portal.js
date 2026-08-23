@@ -20,6 +20,14 @@ export async function ajukanBulk(payload) {
   return supabase.rpc("ajukan_pengajuan_online_bulk", { p: payload });
 }
 
+// Ajukan KEMBALI pengajuan yang DITOLAK (tanpa input ulang): server mereset
+// status ke 'diajukan' (masuk lagi ke antrean Loket) memakai data & berkas yang
+// ada. RPC SECURITY DEFINER memeriksa kepemilikan + status ditolak.
+// return: { data: { ok: true } | null, error }
+export async function ajukanUlang(id) {
+  return supabase.rpc("ajukan_ulang_pengajuan", { p_id: id });
+}
+
 // Bersihkan nama file agar aman jadi path storage.
 function safeName(name) {
   return name.replace(/[^\w.-]+/g, "_").slice(-120);
