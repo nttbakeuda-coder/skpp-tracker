@@ -57,11 +57,14 @@ export const TAHAPAN_A = TAHAPAN_A_OFFLINE;
 export const TAHAPAN_B = TAHAPAN_B_OFFLINE;
 
 // Pilih urutan tahap yang sesuai sumber pengajuan (online vs luring/manual).
+// Jalur belum ditetapkan (mis. pengajuan online yang baru diterima loket dan
+// belum diverifikasi) memakai seri A sebagai basis — dua tahap awal identik pada
+// kedua jalur (A1/A2 == B1/B2). Seri B hanya dipakai bila jalur eksplisit "B".
 export function tahapanUntuk(p) {
   const online = p?.sumber === "online";
-  return p?.jalur === "A"
-    ? (online ? TAHAPAN_A_ONLINE : TAHAPAN_A_OFFLINE)
-    : (online ? TAHAPAN_B_ONLINE : TAHAPAN_B_OFFLINE);
+  return p?.jalur === "B"
+    ? (online ? TAHAPAN_B_ONLINE : TAHAPAN_B_OFFLINE)
+    : (online ? TAHAPAN_A_ONLINE : TAHAPAN_A_OFFLINE);
 }
 
 export const JALUR = { A: "Jalur A", B: "Jalur B" };
