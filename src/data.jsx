@@ -16,7 +16,7 @@ const TAHAPAN_A_ONLINE = [
   { id: "A4", label: "Pembuatan Draft SKPP", pelaksana: "Staf Perbendaharaan" },
   { id: "A6", label: "Penempelan Foto & Penomoran", pelaksana: "Staf Loket" },
   { id: "A5", label: "Verifikasi & Proses Tanda Tangan Pimpinan", pelaksana: "Staf Pengampu OPD → Kasubid → Kuasa BUD" },
-  { id: "A7", label: "SKPP Siap Diserahkan", pelaksana: "Staf Loket", final: true },
+  { id: "A7", label: "SKPP Telah Diterbitkan", pelaksana: "Staf Loket", final: true },
 ];
 const TAHAPAN_A_OFFLINE = [
   { id: "A1", label: "Berkas Diterima di Loket", pelaksana: "Staf Loket" },
@@ -24,7 +24,7 @@ const TAHAPAN_A_OFFLINE = [
   { id: "A4", label: "Pembuatan Draft SKPP", pelaksana: "Staf Perbendaharaan" },
   { id: "A5", label: "Verifikasi & Proses Tanda Tangan Pimpinan", pelaksana: "Staf Pengampu OPD → Kasubid → Kuasa BUD" },
   { id: "A6", label: "Penempelan Foto & Penomoran", pelaksana: "Staf Loket" },
-  { id: "A7", label: "SKPP Siap Diserahkan", pelaksana: "Staf Loket", final: true },
+  { id: "A7", label: "SKPP Telah Diterbitkan", pelaksana: "Staf Loket", final: true },
 ];
 const TAHAPAN_B_ONLINE = [
   { id: "B1", label: "Berkas Diterima di Loket", pelaksana: "Staf Loket" },
@@ -36,7 +36,7 @@ const TAHAPAN_B_ONLINE = [
   { id: "B8", label: "Pembuatan Draft SKPP", pelaksana: "Staf Perbendaharaan" },
   { id: "B10", label: "Penempelan Foto & Penomoran", pelaksana: "Staf Loket" },
   { id: "B9", label: "Verifikasi & Proses Tanda Tangan Pimpinan", pelaksana: "Staf Pengampu OPD → Kasubid → Kuasa BUD" },
-  { id: "B11", label: "SKPP Siap Diserahkan", pelaksana: "Staf Loket", final: true },
+  { id: "B11", label: "SKPP Telah Diterbitkan", pelaksana: "Staf Loket", final: true },
 ];
 const TAHAPAN_B_OFFLINE = [
   { id: "B1", label: "Berkas Diterima di Loket", pelaksana: "Staf Loket" },
@@ -48,7 +48,7 @@ const TAHAPAN_B_OFFLINE = [
   { id: "B8", label: "Pembuatan Draft SKPP", pelaksana: "Staf Perbendaharaan" },
   { id: "B9", label: "Verifikasi & Proses Tanda Tangan Pimpinan", pelaksana: "Staf Pengampu OPD → Kasubid → Kuasa BUD" },
   { id: "B10", label: "Penempelan Foto & Penomoran", pelaksana: "Staf Loket" },
-  { id: "B11", label: "SKPP Siap Diserahkan", pelaksana: "Staf Loket", final: true },
+  { id: "B11", label: "SKPP Telah Diterbitkan", pelaksana: "Staf Loket", final: true },
 ];
 
 // Dipertahankan sbg alias (urutan luring) utk kode lama yang cuma butuh
