@@ -214,6 +214,25 @@ export default function App() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // Verifikasi email dibuka di TAB BARU (halaman /email-terkonfirmasi). Saat tab
+  // itu selesai memverifikasi, tab UTAMA (tab ini) otomatis kembali ke beranda.
+  // Tab verifikasi sendiri dikecualikan agar tidak me-reload dirinya.
+  useEffect(() => {
+    if (window.location.pathname === "/email-terkonfirmasi") return;
+    const keBeranda = () => window.location.replace(window.location.origin + "/");
+    let bc;
+    try {
+      bc = new BroadcastChannel("skpp-auth");
+      bc.onmessage = (e) => { if (e.data === "email-verified") keBeranda(); };
+    } catch { /* BroadcastChannel tak didukung — pakai fallback storage */ }
+    const onStorage = (e) => { if (e.key === "skpp-email-verified" && e.newValue) keBeranda(); };
+    window.addEventListener("storage", onStorage);
+    return () => {
+      try { bc?.close(); } catch { /* noop */ }
+      window.removeEventListener("storage", onStorage);
+    };
+  }, []);
+
   return (
     <>
       {!hasOwnChrome && <Navbar scrolled={scrolled} />}
