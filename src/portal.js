@@ -30,6 +30,19 @@ export async function ajukanUlang(id, payload) {
   return supabase.rpc("ajukan_ulang_pengajuan", { p_id: id, p: payload || null });
 }
 
+// Preferensi notifikasi progres SKPP milik user (kanal email/WA + nomor WA).
+// RLS mengizinkan user membaca profilnya sendiri.
+export async function getPreferensiNotif(uid) {
+  const { data } = await supabase
+    .from("profiles").select("notif_channel, wa_number").eq("id", uid).maybeSingle();
+  return { channel: data?.notif_channel || "email", wa: data?.wa_number || "" };
+}
+
+// Simpan preferensi notifikasi lewat RPC (validasi + hanya baris sendiri).
+export async function simpanPreferensiNotif(channel, wa) {
+  return supabase.rpc("simpan_preferensi_notif", { p_channel: channel, p_wa: wa || null });
+}
+
 // Bersihkan nama file agar aman jadi path storage.
 function safeName(name) {
   return name.replace(/[^\w.-]+/g, "_").slice(-120);

@@ -1,18 +1,117 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth.jsx";
-import { IcoBook, IcoFileText, IcoLogOut } from "./Icons.jsx";
+import { IcoBook, IcoFileText, IcoLogOut, IcoMail } from "./Icons.jsx";
+import { getPreferensiNotif, simpanPreferensiNotif } from "../portal.js";
 import "../landing.css";
 
 const ROLE_LABEL = { bendahara: "Bendahara OPD", pemohon: "Pegawai" };
 
+// Modal Pengaturan Notifikasi progres SKPP (kanal email/WhatsApp + nomor WA).
+function NotifikasiModal({ uid, onClose }) {
+  const [channel, setChannel] = useState("email");
+  const [wa, setWa] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    let alive = true;
+    getPreferensiNotif(uid).then((p) => { if (alive) { setChannel(p.channel); setWa(p.wa); setLoading(false); } });
+    return () => { alive = false; };
+  }, [uid]);
+
+  useEffect(() => {
+    const onKey = (e) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const perluWa = channel === "whatsapp" || channel === "both";
+
+  async function simpan() {
+    setErr(""); setMsg("");
+    if (perluWa && !wa.replace(/\D/g, "")) { setErr("Nomor WhatsApp wajib diisi."); return; }
+    setSaving(true);
+    const { error } = await simpanPreferensiNotif(channel, perluWa ? wa : "");
+    setSaving(false);
+    if (error) { setErr(error.message || "Gagal menyimpan preferensi."); return; }
+    setMsg("Preferensi notifikasi tersimpan.");
+  }
+
+  const OPSI = [
+    ["email", "Email", "Kirim ke alamat email akun Anda."],
+    ["whatsapp", "WhatsApp", "Kirim ke nomor WhatsApp Anda."],
+    ["both", "Email & WhatsApp", "Kirim ke keduanya."],
+    ["off", "Nonaktif", "Tidak menerima notifikasi progres."],
+  ];
+
+  return (
+    <div
+      style={{ position: "fixed", inset: 0, zIndex: 12000, background: "rgba(0,20,50,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+      onClick={onClose}
+    >
+      <div
+        style={{ background: "#fff", borderRadius: 16, maxWidth: 440, width: "100%", maxHeight: "90vh", overflowY: "auto", boxShadow: "0 24px 60px rgba(0,35,82,0.35)" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid var(--g200, #e2e8f0)" }}>
+          <div style={{ fontWeight: 800, fontSize: 15, color: "var(--navy, #002352)" }}>Pengaturan Notifikasi</div>
+          <button type="button" onClick={onClose} aria-label="Tutup" style={{ background: "none", border: "none", fontSize: 18, cursor: "pointer", color: "#94a3b8", lineHeight: 1 }}>✕</button>
+        </div>
+        <div style={{ padding: "18px 20px" }}>
+          <p style={{ fontSize: 12.5, color: "var(--g500, #64748b)", margin: "0 0 14px", lineHeight: 1.6 }}>
+            Pilih cara menerima pemberitahuan saat status pengajuan SKPP Anda berubah — diproses, dikembalikan, ditolak, atau selesai.
+          </p>
+          {loading ? (
+            <div style={{ fontSize: 13, color: "#64748b" }}>Memuat…</div>
+          ) : (
+            <>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {OPSI.map(([val, label, desc]) => (
+                  <label key={val} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "10px 12px", borderRadius: 10, cursor: "pointer", border: `1.5px solid ${channel === val ? "var(--navy, #002352)" : "#e2e8f0"}`, background: channel === val ? "rgba(0,35,82,0.04)" : "#fff" }}>
+                    <input type="radio" name="notif-ch" checked={channel === val} onChange={() => setChannel(val)} style={{ marginTop: 2 }} />
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "var(--navy, #002352)" }}>{label}</div>
+                      <div style={{ fontSize: 11.5, color: "#64748b" }}>{desc}</div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+              {perluWa && (
+                <div style={{ marginTop: 14 }}>
+                  <label style={{ display: "block", fontSize: 12.5, fontWeight: 700, color: "var(--navy, #002352)", marginBottom: 6 }}>Nomor WhatsApp</label>
+                  <input
+                    value={wa}
+                    onChange={(e) => setWa(e.target.value.replace(/[^0-9+]/g, ""))}
+                    inputMode="tel"
+                    placeholder="mis. 081234567890"
+                    style={{ width: "100%", boxSizing: "border-box", padding: "10px 12px", border: "1px solid #cbd5e1", borderRadius: 9, fontSize: 14, fontFamily: "monospace" }}
+                  />
+                  <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 5 }}>Gunakan nomor aktif WhatsApp. Format 08… atau 62… sama-sama diterima.</div>
+                </div>
+              )}
+              {err && <div style={{ marginTop: 12, fontSize: 12.5, color: "#b91c1c", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "8px 12px" }}>{err}</div>}
+              {msg && <div style={{ marginTop: 12, fontSize: 12.5, color: "#065f46", background: "#ecfdf5", border: "1px solid #a7f3d0", borderRadius: 8, padding: "8px 12px" }}>{msg}</div>}
+              <button type="button" onClick={simpan} disabled={saving} style={{ marginTop: 16, width: "100%", padding: 11, border: "none", borderRadius: 9, background: "var(--navy, #002352)", color: "#fff", fontWeight: 700, fontSize: 14, cursor: saving ? "wait" : "pointer" }}>
+                {saving ? "Menyimpan…" : "Simpan Preferensi"}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Header aplikasi (halaman yang butuh login: Ajukan, Pengajuan Saya) --
-// sticky navy, avatar + menu (Panduan/Regulasi/Keluar), sesuai desain
-// handoff. Berbeda dari Navbar publik (dipakai Masuk/Daftar, blm login).
+// sticky navy, avatar + menu (Notifikasi/Panduan/Regulasi/Keluar).
 export function AppHeader() {
-  const { profile, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const nav = useNavigate();
   const [open, setOpen] = useState(false);
+  const [showNotif, setShowNotif] = useState(false);
   const ref = useRef(null);
 
   useEffect(() => {
@@ -87,6 +186,9 @@ export function AppHeader() {
             <div style={{ fontSize: 13, fontWeight: 700, color: "var(--navy, #002352)", lineHeight: 1.3 }}>{profile?.nama || "Pengguna"}</div>
             {roleLine && <div style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 10.5, color: "var(--g500, #7A8699)", marginTop: 2 }}>{roleLine}</div>}
           </div>
+          <button type="button" className="lp-menu-item" onClick={() => { setOpen(false); setShowNotif(true); }}>
+            <IcoMail size={15} /> Notifikasi
+          </button>
           <button type="button" className="lp-menu-item" onClick={() => { setOpen(false); nav("/panduan"); }}>
             <IcoBook size={15} /> Panduan
           </button>
@@ -99,6 +201,8 @@ export function AppHeader() {
           </button>
         </div>
       </div>
+
+      {showNotif && user && <NotifikasiModal uid={user.id} onClose={() => setShowNotif(false)} />}
     </header>
   );
 }
