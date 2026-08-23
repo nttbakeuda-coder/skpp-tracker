@@ -187,7 +187,7 @@ export function AppHeader() {
             {roleLine && <div style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 10.5, color: "var(--g500, #7A8699)", marginTop: 2 }}>{roleLine}</div>}
           </div>
           <button type="button" className="lp-menu-item" onClick={() => { setOpen(false); setShowNotif(true); }}>
-            <IcoMail size={15} /> Notifikasi
+            <IcoMail size={15} /> Aktifkan Notifikasi
           </button>
           <button type="button" className="lp-menu-item" onClick={() => { setOpen(false); nav("/panduan"); }}>
             <IcoBook size={15} /> Panduan
