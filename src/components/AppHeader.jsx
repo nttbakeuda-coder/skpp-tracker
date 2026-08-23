@@ -8,9 +8,9 @@ import "../landing.css";
 const ROLE_LABEL = { bendahara: "Bendahara OPD", pemohon: "Pegawai" };
 
 // Modal Pengaturan Notifikasi progres SKPP (kanal email/WhatsApp + nomor WA).
-function NotifikasiModal({ uid, onClose }) {
+function NotifikasiModal({ uid, role, onClose }) {
   const [channel, setChannel] = useState("email");
-  const [wa, setWa] = useState("");
+  const [waList, setWaList] = useState([""]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
@@ -18,9 +18,19 @@ function NotifikasiModal({ uid, onClose }) {
 
   useEffect(() => {
     let alive = true;
-    getPreferensiNotif(uid).then((p) => { if (alive) { setChannel(p.channel); setWa(p.wa); setLoading(false); } });
+    getPreferensiNotif(uid).then((p) => {
+      if (!alive) return;
+      setChannel(p.channel);
+      const arr = (p.wa || "").split(",").map((s) => s.trim()).filter(Boolean);
+      setWaList(arr.length ? arr : [""]);
+      setLoading(false);
+    });
     return () => { alive = false; };
   }, [uid]);
+
+  const setWaAt = (i, val) => setWaList((l) => l.map((x, ix) => (ix === i ? val.replace(/[^0-9+]/g, "") : x)));
+  const addWa = () => setWaList((l) => [...l, ""]);
+  const removeWaAt = (i) => setWaList((l) => (l.length > 1 ? l.filter((_, ix) => ix !== i) : l));
 
   useEffect(() => {
     const onKey = (e) => e.key === "Escape" && onClose();
@@ -32,9 +42,10 @@ function NotifikasiModal({ uid, onClose }) {
 
   async function simpan() {
     setErr(""); setMsg("");
-    if (perluWa && !wa.replace(/\D/g, "")) { setErr("Nomor WhatsApp wajib diisi."); return; }
+    const nums = waList.map((s) => s.replace(/\D/g, "")).filter(Boolean);
+    if (perluWa && !nums.length) { setErr("Minimal satu nomor WhatsApp wajib diisi."); return; }
     setSaving(true);
-    const { error } = await simpanPreferensiNotif(channel, perluWa ? wa : "");
+    const { error } = await simpanPreferensiNotif(channel, perluWa ? nums.join(",") : "");
     setSaving(false);
     if (error) { setErr(error.message || "Gagal menyimpan preferensi."); return; }
     setMsg("Preferensi notifikasi tersimpan.");
@@ -82,14 +93,32 @@ function NotifikasiModal({ uid, onClose }) {
               {perluWa && (
                 <div style={{ marginTop: 14 }}>
                   <label style={{ display: "block", fontSize: 12.5, fontWeight: 700, color: "var(--navy, #002352)", marginBottom: 6 }}>Nomor WhatsApp</label>
-                  <input
-                    value={wa}
-                    onChange={(e) => setWa(e.target.value.replace(/[^0-9+]/g, ""))}
-                    inputMode="tel"
-                    placeholder="mis. 081234567890"
-                    style={{ width: "100%", boxSizing: "border-box", padding: "10px 12px", border: "1px solid #cbd5e1", borderRadius: 9, fontSize: 14, fontFamily: "monospace" }}
-                  />
-                  <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 5 }}>Gunakan nomor aktif WhatsApp. Format 08… atau 62… sama-sama diterima.</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {waList.map((num, i) => (
+                      <div key={i} style={{ display: "flex", gap: 8 }}>
+                        <input
+                          value={num}
+                          onChange={(e) => setWaAt(i, e.target.value)}
+                          inputMode="tel"
+                          placeholder="mis. 081234567890"
+                          style={{ flex: 1, minWidth: 0, boxSizing: "border-box", padding: "10px 12px", border: "1px solid #cbd5e1", borderRadius: 9, fontSize: 14, fontFamily: "monospace" }}
+                        />
+                        {waList.length > 1 && (
+                          <button type="button" onClick={() => removeWaAt(i)} aria-label="Hapus nomor"
+                            style={{ flexShrink: 0, width: 42, border: "1px solid #fecaca", background: "#fef2f2", color: "#b91c1c", borderRadius: 9, cursor: "pointer", fontSize: 15 }}>✕</button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <button type="button" onClick={addWa}
+                    style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 6, background: "none", border: "1px dashed var(--navy, #002352)", color: "var(--navy, #002352)", borderRadius: 9, padding: "7px 12px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+                    + Tambah nomor
+                  </button>
+                  <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 6, lineHeight: 1.5 }}>
+                    {role === "bendahara"
+                      ? "Tambahkan nomor WhatsApp pegawai yang bersangkutan agar mereka juga menerima pembaruan progres. Format 08… atau 62… sama-sama diterima."
+                      : "Gunakan nomor aktif WhatsApp. Format 08… atau 62… sama-sama diterima. Anda dapat menambahkan lebih dari satu nomor."}
+                  </div>
                 </div>
               )}
               {err && <div style={{ marginTop: 12, fontSize: 12.5, color: "#b91c1c", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "8px 12px" }}>{err}</div>}
@@ -202,7 +231,7 @@ export function AppHeader() {
         </div>
       </div>
 
-      {showNotif && user && <NotifikasiModal uid={user.id} onClose={() => setShowNotif(false)} />}
+      {showNotif && user && <NotifikasiModal uid={user.id} role={profile?.role} onClose={() => setShowNotif(false)} />}
     </header>
   );
 }
