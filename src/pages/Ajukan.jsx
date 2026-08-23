@@ -73,10 +73,18 @@ function decodeAlasan(raw) {
   return out;
 }
 
-// Label dokumen wajib yang belum ada berkasnya (semua kecuali "Dokumen lain / pelengkap").
+// "Akta Kelahiran Anak" hanya WAJIB bila ahli waris = Anak; selain itu opsional.
+const DOK_AKTA_ANAK = "Akta Kelahiran Anak (bila ahli waris adalah anak)";
+
+// Label dokumen wajib yang belum ada berkasnya (semua kecuali "Dokumen lain /
+// pelengkap"). Akta kelahiran anak dikecualikan bila ahli waris bukan anak.
 function missingDocs(alasan, files) {
   const uploaded = new Set(files.map((x) => x.jenis));
-  return dokumenWajib(alasan).filter((t) => !uploaded.has(t));
+  const ahliWarisAnak = /—\s*Anak\s*$/.test(alasan || "");
+  return dokumenWajib(alasan).filter((t) => {
+    if (t === DOK_AKTA_ANAK && !ahliWarisAnak) return false; // opsional
+    return !uploaded.has(t);
+  });
 }
 
 // Wrapper field seragam: label + input/select anak + highlight merah & pesan bila invalid.
@@ -581,6 +589,11 @@ export default function Ajukan() {
 
           {mode === "tunggal" && (() => {
             const fe = showErr ? tunggalFieldErrors(f) : {};
+            // Tombol kirim nonaktif sampai semua kolom wajib terisi & berkas
+            // wajib terunggah (mode edit: berkas lama tetap, tak wajib ulang).
+            const belumLengkap =
+              Object.keys(tunggalFieldErrors(f)).length > 0 ||
+              (!editId && missingDocs(effectiveAlasan(f), files).length > 0);
             return (
             <>
               <div className="p-grid2">
@@ -646,9 +659,14 @@ export default function Ajukan() {
                 <BerkasPersyaratan alasan={effectiveAlasan(f)} files={files} setFiles={setFiles} showErrors={showErr && !editId} />
               </div>
 
-              <button className="btn btn-primary btn-block" disabled={busy} onClick={submitTunggal}>
+              <button className="btn btn-primary btn-block" disabled={busy || belumLengkap} onClick={submitTunggal}>
                 {busy ? "⟳ Mengirim…" : editId ? "Kirim Ulang Pengajuan" : "Kirim Pengajuan"}
               </button>
+              {belumLengkap && !busy && (
+                <div style={{ fontSize: 12, color: "var(--g500)", textAlign: "center", marginTop: 8 }}>
+                  Lengkapi semua kolom wajib (*) dan berkas persyaratan untuk mengirim.
+                </div>
+              )}
             </>
             );
           })()}
@@ -744,9 +762,23 @@ export default function Ajukan() {
                 <span style={{ fontSize: 12, color: "var(--g500)", alignSelf: "center" }}>{items.length} pegawai</span>
               </div>
 
-              <button className="btn btn-primary btn-block" disabled={busy} onClick={submitBulk}>
-                {busy ? "⟳ Mengirim…" : `Kirim ${items.length} Pengajuan`}
-              </button>
+              {(() => {
+                const bulkBelumLengkap =
+                  !bulkOPD ||
+                  items.some((it) => Object.keys(itemFieldErrors(it)).length > 0 || missingDocs(effectiveAlasan(it), it.files || []).length > 0);
+                return (
+                  <>
+                    <button className="btn btn-primary btn-block" disabled={busy || bulkBelumLengkap} onClick={submitBulk}>
+                      {busy ? "⟳ Mengirim…" : `Kirim ${items.length} Pengajuan`}
+                    </button>
+                    {bulkBelumLengkap && !busy && (
+                      <div style={{ fontSize: 12, color: "var(--g500)", textAlign: "center", marginTop: 8 }}>
+                        Lengkapi semua kolom wajib (*) dan berkas persyaratan tiap pegawai untuk mengirim.
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </>
           )}
         </div>
