@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../auth.jsx";
-import { ajukanPengajuan, ajukanBulk, uploadBerkas, listPengajuanSaya, ajukanUlang, listBerkas } from "../portal.js";
+import { ajukanPengajuan, ajukanBulk, uploadBerkas, listPengajuanSaya, ajukanUlang, listBerkas, hapusBerkasByJenis } from "../portal.js";
 import { DAFTAR_OPD, DAFTAR_KEPERLUAN_ONLINE, AHLI_WARIS_HUBUNGAN, pangkatUntukStatus, dokumenWajib } from "../refdata.js";
 import { BerkasPersyaratan } from "../components/BerkasPersyaratan.jsx";
 import { SearchableSelect } from "../components/SearchableSelect.jsx";
@@ -17,6 +17,10 @@ const TMT_KEPERLUAN = [
   "Pemberhentian dengan Hormat", "Pemberhentian dengan Hormat PPPK", "Pemberhentian Tidak dengan Hormat",
 ];
 const showTmt = (alasan) => TMT_KEPERLUAN.includes(alasan);
+
+// Slot dokumen opsional (boleh banyak file) — dikecualikan dari "menimpa
+// berkas berjenis sama" saat ajukan ulang. Samakan dgn BerkasPersyaratan.
+const LAIN = "Dokumen lain / pelengkap";
 const tmtLabel = (alasan) =>
   alasan === "Pensiun" ? "TMT Pensiun" : alasan === "Pindah" ? "TMT Pindah" : "TMT Pemberhentian";
 
@@ -464,7 +468,12 @@ export default function Ajukan() {
         setErr(error.message || "Gagal mengajukan kembali.");
         return;
       }
-      // Unggah berkas BARU (opsional) ke pengajuan yang sama; berkas lama tetap.
+      // Unggahan baru MENIMPA berkas lama berjenis sama: hapus dulu berkas lama
+      // untuk jenis yang di-unggah ulang (kecuali "Dokumen lain" yg boleh banyak),
+      // supaya tidak menumpuk/dobel. Yang tidak di-unggah ulang tetap tersimpan.
+      const jenisBaru = [...new Set(files.map((x) => x.jenis).filter((j) => j && j !== LAIN))];
+      if (jenisBaru.length) await hapusBerkasByJenis(editId, jenisBaru);
+      // Unggah berkas BARU (opsional) ke pengajuan yang sama.
       let uploaded = 0, failed = 0;
       for (const x of files) {
         const { error: e2 } = await uploadBerkas({ uid: user.id, pengajuanId: editId, file: x.file, jenis: x.jenis });

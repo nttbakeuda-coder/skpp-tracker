@@ -52,6 +52,25 @@ export async function uploadBerkas({ uid, pengajuanId, file, jenis }) {
   return { error: meta.error || null, path };
 }
 
+// Hapus berkas LAMA milik pengajuan yang jenisnya termasuk `jenisList` (metadata
+// BerkasPengajuan + file di Storage). Dipakai saat unggah ULANG (ajukan kembali)
+// agar unggahan baru MENIMPA berkas lama berjenis sama, bukan menumpuk.
+// Catatan RLS: hapus metadata hanya diizinkan saat status pengajuan 'diajukan'.
+export async function hapusBerkasByJenis(pengajuanId, jenisList) {
+  if (!pengajuanId || !jenisList?.length) return { error: null };
+  const { data, error } = await supabase
+    .from("BerkasPengajuan")
+    .select("id, path")
+    .eq("pengajuanId", pengajuanId)
+    .in("jenis", jenisList);
+  if (error) return { error };
+  if (!data?.length) return { error: null };
+  const paths = data.map((b) => b.path).filter(Boolean);
+  if (paths.length) await supabase.storage.from(BUCKET).remove(paths);
+  const del = await supabase.from("BerkasPengajuan").delete().in("id", data.map((b) => b.id));
+  return { error: del.error || null };
+}
+
 // Daftar pengajuan milik user (RLS: submittedBy = auth.uid()).
 export async function listPengajuanSaya(uid) {
   const { data, error } = await supabase
