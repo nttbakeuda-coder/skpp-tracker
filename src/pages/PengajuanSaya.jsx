@@ -609,28 +609,30 @@ export default function PengajuanSaya() {
                         <td>{r.nama}</td>
                         <td>{r.alasan || "-"}</td>
                         <td>
-                          <StatusBadge status={r.status} />
-                          {r.status === "selesai" && !sudahDinilai(r.id) && (
-                            <button
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); setSurveiRow(r); }}
-                              style={{ display: "block", marginTop: 5, background: "#fef3c7", color: "#92400e", border: "1px solid #fde68a", borderRadius: 999, fontSize: 10, fontWeight: 700, padding: "2px 8px", cursor: "pointer" }}
-                              title="Isi survei kepuasan layanan (wajib)"
-                            >
-                              Nilai layanan
-                            </button>
-                          )}
-                          {r.status === "ditolak" && (
-                            <button
-                              type="button"
-                              disabled={ulangBusy === r.id}
-                              onClick={(e) => { e.stopPropagation(); doAjukanUlang(r); }}
-                              style={{ display: "block", marginTop: 5, background: "#e0f2fe", color: "#075985", border: "1px solid #bae6fd", borderRadius: 999, fontSize: 10, fontWeight: 700, padding: "2px 8px", cursor: ulangBusy === r.id ? "wait" : "pointer" }}
-                              title="Ajukan kembali pengajuan ini tanpa mengisi ulang"
-                            >
-                              {ulangBusy === r.id ? "Memproses…" : "Ajukan kembali"}
-                            </button>
-                          )}
+                          <div style={{ display: "inline-flex", flexDirection: "column", alignItems: "flex-start", gap: 6 }}>
+                            <StatusBadge status={r.status} />
+                            {r.status === "selesai" && !sudahDinilai(r.id) && (
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); setSurveiRow(r); }}
+                                style={{ background: "#fef3c7", color: "#92400e", border: "1px solid #fde68a", borderRadius: 999, fontSize: 10.5, fontWeight: 700, padding: "3px 10px", cursor: "pointer", whiteSpace: "nowrap" }}
+                                title="Isi survei kepuasan layanan (wajib)"
+                              >
+                                Nilai layanan
+                              </button>
+                            )}
+                            {r.status === "ditolak" && (
+                              <button
+                                type="button"
+                                disabled={ulangBusy === r.id}
+                                onClick={(e) => { e.stopPropagation(); doAjukanUlang(r); }}
+                                style={{ background: "#e0f2fe", color: "#075985", border: "1px solid #bae6fd", borderRadius: 999, fontSize: 10.5, fontWeight: 700, padding: "3px 10px", cursor: ulangBusy === r.id ? "wait" : "pointer", whiteSpace: "nowrap" }}
+                                title="Ajukan kembali pengajuan ini tanpa mengisi ulang"
+                              >
+                                {ulangBusy === r.id ? "Memproses…" : "Ajukan kembali"}
+                              </button>
+                            )}
+                          </div>
                         </td>
                         <td><span className="p-kode">{r.kodeAkses}</span></td>
                         <td onClick={(e) => e.stopPropagation()}>
