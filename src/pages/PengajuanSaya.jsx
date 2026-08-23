@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth.jsx";
-import { listPengajuanSaya, uploadBerkas, listBerkas, berkasUrl, unduhBerkas, unduhSkppFinal, ajukanUlang } from "../portal.js";
+import { listPengajuanSaya, uploadBerkas, listBerkas, berkasUrl, unduhBerkas, unduhSkppFinal } from "../portal.js";
 import { lacak, mekanismeHutangAktif, dokumenKurangAktif } from "../lacak.js";
 import { BerkasPersyaratan } from "../components/BerkasPersyaratan.jsx";
 import { ResultCard } from "../components/ResultCard.jsx";
@@ -374,9 +374,6 @@ export default function PengajuanSaya() {
   const [lacakLoading, setLacakLoading] = useState(false);
   const [lacakError, setLacakError] = useState("");
 
-  // "Ajukan kembali" untuk pengajuan ditolak (id yg sedang diproses + pesan galat).
-  const [ulangBusy, setUlangBusy] = useState("");
-  const [ulangErr, setUlangErr] = useState("");
 
   useEffect(() => {
     if (!loading && !isLoggedIn) nav("/masuk", { replace: true });
@@ -457,27 +454,6 @@ export default function PengajuanSaya() {
     muatBerkas(pengajuanId);
   }
 
-  // Ajukan kembali pengajuan yang DITOLAK (tanpa input ulang). Konfirmasi dulu,
-  // panggil RPC, lalu muat ulang daftar agar status jadi "Diajukan".
-  async function doAjukanUlang(r) {
-    if (ulangBusy) return;
-    if (!window.confirm(
-      "Ajukan kembali pengajuan ini? Pengajuan akan masuk lagi ke antrean verifikasi Loket " +
-      "dengan data dan berkas yang sudah ada. Anda masih dapat melengkapi atau mengganti berkas setelahnya."
-    )) return;
-    setUlangBusy(r.id);
-    setUlangErr("");
-    const { error } = await ajukanUlang(r.id);
-    if (error) {
-      setUlangBusy("");
-      setUlangErr(error.message || "Gagal mengajukan kembali. Coba lagi.");
-      return;
-    }
-    const { data } = await listPengajuanSaya(user.id);
-    setRows(data);
-    setUlangBusy("");
-  }
-
   const tutupModal = () => { setOpenFor(null); setOpenMode(null); };
 
   // ESC menutup jendela Lacak/Dokumen.
@@ -555,7 +531,6 @@ export default function PengajuanSaya() {
           )}
 
           {err && <div className="p-alert p-alert-err" style={{ marginTop: 14 }}><IcoAlertTriangle size={16} /><div>{err}</div></div>}
-          {ulangErr && <div className="p-alert p-alert-err" style={{ marginTop: 14 }}><IcoAlertTriangle size={16} /><div>{ulangErr}</div></div>}
 
           {perluSurvei.length > 0 && (
             <div className="p-alert p-alert-warn" style={{ marginTop: 14, alignItems: "center" }}>
@@ -624,12 +599,11 @@ export default function PengajuanSaya() {
                             {r.status === "ditolak" && (
                               <button
                                 type="button"
-                                disabled={ulangBusy === r.id}
-                                onClick={(e) => { e.stopPropagation(); doAjukanUlang(r); }}
-                                style={{ background: "#e0f2fe", color: "#075985", border: "1px solid #bae6fd", borderRadius: 999, fontSize: 10.5, fontWeight: 700, padding: "3px 10px", cursor: ulangBusy === r.id ? "wait" : "pointer", whiteSpace: "nowrap" }}
-                                title="Ajukan kembali pengajuan ini tanpa mengisi ulang"
+                                onClick={(e) => { e.stopPropagation(); nav("/ajukan", { state: { ajukanUlang: r } }); }}
+                                style={{ background: "#e0f2fe", color: "#075985", border: "1px solid #bae6fd", borderRadius: 999, fontSize: 10.5, fontWeight: 700, padding: "3px 10px", cursor: "pointer", whiteSpace: "nowrap" }}
+                                title="Ajukan kembali: buka form berisi data lama untuk diedit lalu kirim ulang"
                               >
-                                {ulangBusy === r.id ? "Memproses…" : "Ajukan kembali"}
+                                Ajukan kembali
                               </button>
                             )}
                           </div>
@@ -684,7 +658,7 @@ export default function PengajuanSaya() {
             dokumen/bukti akan tersedia di bawah keterangan tahap terkait. Gunakan <strong>Dokumen</strong> untuk
             meninjau berkas yang telah diunggah atau melengkapinya selama status masih <strong>Diajukan</strong>.
             Pengajuan berstatus <strong>Ditolak</strong> dapat diajukan kembali lewat tombol
-            <strong> Ajukan kembali</strong> tanpa mengisi ulang — berkas dapat dilengkapi setelahnya.
+            <strong> Ajukan kembali</strong> — data lama otomatis terisi di form, tinggal diperiksa/diedit lalu dikirim ulang.
           </p>
           )}
         </div>

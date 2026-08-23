@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../auth.jsx";
-import { ajukanPengajuan, ajukanBulk, uploadBerkas, listPengajuanSaya } from "../portal.js";
+import { ajukanPengajuan, ajukanBulk, uploadBerkas, listPengajuanSaya, ajukanUlang, listBerkas } from "../portal.js";
 import { DAFTAR_OPD, DAFTAR_KEPERLUAN_ONLINE, AHLI_WARIS_HUBUNGAN, pangkatUntukStatus, dokumenWajib } from "../refdata.js";
 import { BerkasPersyaratan } from "../components/BerkasPersyaratan.jsx";
 import { SearchableSelect } from "../components/SearchableSelect.jsx";
@@ -34,6 +34,39 @@ function effectiveAlasan(x) {
     return "Meninggal Dunia (Dengan Ahli Waris)" + (aw ? ` — Ahli Waris: ${aw}` : "");
   }
   return "Meninggal Dunia";
+}
+
+// Kebalikan fmtTgl (lacak.js): "1 Agu 2026" -> "2026-08-01" untuk <input type=date>.
+const BLN_ID = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+function parseTglId(s) {
+  const m = /^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})$/.exec(String(s || "").trim());
+  if (!m) return "";
+  const bi = BLN_ID.findIndex((b) => b.toLowerCase() === m[2].toLowerCase());
+  if (bi < 0) return "";
+  return `${m[3]}-${String(bi + 1).padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+}
+
+// Urai `alasan` efektif yang tersimpan kembali ke field form (kebalikan
+// effectiveAlasan) — dipakai saat "Ajukan kembali" mengisi form dari pengajuan
+// lama. Mengembalikan { alasan (keperluan dasar), tmt, ahliWaris, namaAhliWaris,
+// hubunganAhliWaris }.
+function decodeAlasan(raw) {
+  const s = String(raw || "");
+  // Cocokkan prefiks keperluan TERPANJANG dulu (mis. "...Hormat PPPK" sebelum "...Hormat").
+  const base =
+    [...DAFTAR_KEPERLUAN_ONLINE].sort((a, b) => b.length - a.length).find((k) => s.startsWith(k)) || "Pensiun";
+  const out = { alasan: base, tmt: "", ahliWaris: "", namaAhliWaris: "", hubunganAhliWaris: "" };
+  const mTmt = s.match(/TMT:\s*(.+?)\s*$/);
+  if (mTmt) out.tmt = parseTglId(mTmt[1]);
+  if (base === "Meninggal Dunia") {
+    if (s.includes("Tanpa Ahli Waris")) out.ahliWaris = "tanpa";
+    else if (s.includes("Dengan Ahli Waris")) {
+      out.ahliWaris = "dengan";
+      const mAw = s.match(/Ahli Waris:\s*(.+?)\s*—\s*([^—]+)$/);
+      if (mAw) { out.namaAhliWaris = mAw[1].trim(); out.hubunganAhliWaris = mAw[2].trim(); }
+    }
+  }
+  return out;
 }
 
 // Label dokumen wajib yang belum ada berkasnya (semua kecuali "Dokumen lain / pelengkap").
@@ -150,7 +183,14 @@ const newItem = () => ({
 export default function Ajukan() {
   const { user, profile, isApproved, isPending, isRejected, loading } = useAuth();
   const nav = useNavigate();
+  const loc = useLocation();
   const role = profile?.role;
+
+  // Mode "Ajukan kembali": form diisi otomatis dari pengajuan DITOLAK (dikirim
+  // lewat state navigasi). Submit MEMPERBARUI pengajuan yang sama (id & kode
+  // akses tetap) lalu status kembali 'diajukan' — bukan membuat pengajuan baru.
+  const editRow = loc.state?.ajukanUlang || null;
+  const editId = editRow?.id || null;
 
   const [mode, setMode] = useState("tunggal");
   // Tunggal
@@ -219,7 +259,7 @@ export default function Ajukan() {
   }
 
   const [identityPrefilledFor, setIdentityPrefilledFor] = useState(null);
-  if (profile && existingChecked && !hasExisting && identityPrefilledFor !== profile.id) {
+  if (profile && !editId && existingChecked && !hasExisting && identityPrefilledFor !== profile.id) {
     setIdentityPrefilledFor(profile.id);
     setF((s) => ({
       ...s,
@@ -230,6 +270,38 @@ export default function Ajukan() {
       nip:  role === "bendahara" ? s.nip  : (s.nip  || profile.username || ""),
     }));
   }
+
+  // Prefill "Ajukan kembali": isi SEMUA field dari pengajuan lama (uraikan alasan
+  // efektif -> keperluan dasar + TMT + ahli waris). Deteksi jenis ASN dari pangkat.
+  const [editPrefilled, setEditPrefilled] = useState(false);
+  if (editRow && !editPrefilled) {
+    setEditPrefilled(true);
+    const dec = decodeAlasan(editRow.alasan);
+    setF((s) => ({
+      ...s,
+      nama: editRow.nama || "",
+      nip: editRow.nip != null ? String(editRow.nip) : "",
+      opd: editRow.opd || s.opd || "",
+      jabatan: editRow.jabatan || "",
+      jenisASN: pangkatUntukStatus("PPPK").includes(editRow.pangkat) ? "PPPK" : "PNS",
+      pangkat: editRow.pangkat || "",
+      alasan: dec.alasan,
+      tmt: dec.tmt,
+      ahliWaris: dec.ahliWaris,
+      namaAhliWaris: dec.namaAhliWaris,
+      hubunganAhliWaris: dec.hubunganAhliWaris,
+    }));
+  }
+
+  // Berkas yang sudah menempel pada pengajuan lama (ditampilkan di mode edit,
+  // tetap tersimpan — unggah ulang tidak wajib).
+  const [existingBerkas, setExistingBerkas] = useState([]);
+  useEffect(() => {
+    if (!editId) return;
+    let alive = true;
+    listBerkas(editId).then(({ data }) => { if (alive) setExistingBerkas(data || []); });
+    return () => { alive = false; };
+  }, [editId]);
 
   const set = (k, v) => setF((s) => ({ ...s, [k]: v }));
   const setItem = (id, k, v) => setItems((prev) => prev.map((it) => (it._id === id ? { ...it, [k]: v } : it)));
@@ -283,9 +355,9 @@ export default function Ajukan() {
   }
 
   // Gerbang: Pegawai (pemohon) hanya boleh 1 pengajuan. Bila sudah punya (aktif
-  // maupun ditolak), tidak membuat baru — yang ditolak diajukan kembali dari
-  // halaman Pengajuan Saya (tanpa input ulang).
-  if (role === "pemohon" && existingChecked && hasExisting && !result) {
+  // maupun ditolak), tidak membuat baru — yang ditolak diajukan kembali lewat
+  // mode edit (editId), jadi gerbang ini dilewati saat mode "Ajukan kembali".
+  if (role === "pemohon" && !editId && existingChecked && hasExisting && !result) {
     const hanyaDitolak = !hasActive; // punya pengajuan & semuanya ditolak
     return (
       <div className="portal-page in-app">
@@ -297,7 +369,7 @@ export default function Ajukan() {
               <div>
                 Sebagai Pegawai, Anda hanya dapat memiliki <strong>satu pengajuan SKPP</strong>.{" "}
                 {hanyaDitolak
-                  ? <>Pengajuan Anda sebelumnya ditolak — Anda dapat <strong>mengajukannya kembali tanpa mengisi ulang</strong> lewat tombol <strong>“Ajukan kembali”</strong> di halaman Pengajuan Saya.</>
+                  ? <>Pengajuan Anda sebelumnya ditolak — buka <strong>Pengajuan Saya</strong> lalu klik <strong>“Ajukan kembali”</strong>: form akan terisi otomatis dari data lama untuk Anda periksa/edit sebelum dikirim ulang.</>
                   : <>Pengajuan Anda saat ini masih berjalan — pantau statusnya di Pengajuan Saya.</>}
               </div>
             </div>
@@ -316,11 +388,13 @@ export default function Ajukan() {
         <div className="portal-wrap wide">
           <div className="portal-card">
             <div style={{ display: "flex", justifyContent: "center", color: "#059669" }}><IcoCheckCircle size={40} /></div>
-            <h1 className="portal-title" style={{ textAlign: "center" }}>Pengajuan Terkirim</h1>
+            <h1 className="portal-title" style={{ textAlign: "center" }}>{result.edit ? "Pengajuan Diajukan Kembali" : "Pengajuan Terkirim"}</h1>
             <div className="p-alert p-alert-ok" style={{ marginTop: 12 }}>
               <IcoCheckCircle size={16} />
               <div>
-                Pengajuan telah tercatat dalam antrean dan akan diverifikasi oleh petugas Loket.
+                {result.edit
+                  ? <>Pengajuan Anda telah diperbarui dan masuk kembali ke antrean verifikasi Loket. </>
+                  : <>Pengajuan telah tercatat dalam antrean dan akan diverifikasi oleh petugas Loket. </>}
                 Simpan <strong>Kode Akses</strong> berikut untuk memantau status pengajuan.
                 {typeof result.uploaded === "number" && (
                   <> Berkas terunggah: <strong>{result.uploaded}</strong>{result.failed ? `, gagal: ${result.failed}` : ""}.</>
@@ -353,9 +427,11 @@ export default function Ajukan() {
 
             <div style={{ display: "flex", gap: 10, marginTop: 20, flexWrap: "wrap" }}>
               <button className="btn btn-primary" onClick={() => nav("/pengajuan-saya")}>Lihat Pengajuan Saya</button>
-              <button className="btn btn-ghost" onClick={() => { setResult(null); setFiles([]); setItems([newItem()]); }}>
-                Ajukan Lagi
-              </button>
+              {!result.edit && (
+                <button className="btn btn-ghost" onClick={() => { setResult(null); setFiles([]); setItems([newItem()]); }}>
+                  Ajukan Lagi
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -365,19 +441,42 @@ export default function Ajukan() {
 
   async function submitTunggal() {
     const hasFieldErr = Object.keys(tunggalFieldErrors(f)).length > 0;
-    const missing = missingDocs(effectiveAlasan(f), files);
+    // Mode edit (ajukan ulang): berkas lama tetap tersimpan -> tak wajib unggah ulang.
+    const missing = editId ? [] : missingDocs(effectiveAlasan(f), files);
     if (hasFieldErr || missing.length > 0) {
       setShowErr(true);
-      setErr("Lengkapi data dan berkas yang ditandai di bawah.");
+      setErr("Lengkapi data" + (editId ? "" : " dan berkas") + " yang ditandai di bawah.");
       return;
     }
     setShowErr(false);
     setBusy(true);
     setErr("");
-    const { data, error } = await ajukanPengajuan({
+    const payload = {
       nama: f.nama.trim(), nip: f.nip.trim(), opd: f.opd,
       jabatan: f.jabatan.trim(), pangkat: f.pangkat, alasan: effectiveAlasan(f),
-    });
+    };
+
+    // ── Mode "Ajukan kembali": perbarui pengajuan yang sama, status -> diajukan ──
+    if (editId) {
+      const { error } = await ajukanUlang(editId, payload);
+      if (error) {
+        setBusy(false);
+        setErr(error.message || "Gagal mengajukan kembali.");
+        return;
+      }
+      // Unggah berkas BARU (opsional) ke pengajuan yang sama; berkas lama tetap.
+      let uploaded = 0, failed = 0;
+      for (const x of files) {
+        const { error: e2 } = await uploadBerkas({ uid: user.id, pengajuanId: editId, file: x.file, jenis: x.jenis });
+        if (e2) failed++; else uploaded++;
+      }
+      setBusy(false);
+      setResult({ rows: [{ nama: f.nama.trim(), id: editId, kodeAkses: editRow.kodeAkses }], uploaded, failed, edit: true });
+      return;
+    }
+
+    // ── Pengajuan baru ──
+    const { data, error } = await ajukanPengajuan(payload);
     if (error || !data) {
       setBusy(false);
       setErr(error?.message || "Gagal mengirim pengajuan.");
@@ -445,13 +544,14 @@ export default function Ajukan() {
             Kembali ke Pengajuan Saya
           </button>
           <div className="portal-tag" style={{ marginTop: 12 }}>Portal Pengajuan SKPP</div>
-          <h1 className="portal-title">Ajukan SKPP</h1>
+          <h1 className="portal-title">{editId ? "Ajukan Kembali SKPP" : "Ajukan SKPP"}</h1>
           <p className="portal-sub">
-            Isi data pemohon dan unggah berkas persyaratan. Pengajuan masuk antrean dan akan
-            diverifikasi oleh petugas loket.
+            {editId
+              ? <>Data pengajuan yang sebelumnya ditolak ({editId}) sudah terisi otomatis. Periksa dan perbaiki seperlunya, lalu kirim ulang untuk masuk kembali ke antrean verifikasi Loket.</>
+              : <>Isi data pemohon dan unggah berkas persyaratan. Pengajuan masuk antrean dan akan diverifikasi oleh petugas loket.</>}
           </p>
 
-          {role === "bendahara" && (
+          {role === "bendahara" && !editId && (
             <div className="p-role" style={{ marginBottom: 18 }}>
               <button type="button" className={mode === "tunggal" ? "on" : ""} onClick={() => setMode("tunggal")}>
                 <div className="rt"><IcoPerson size={18} /> Tunggal</div>
@@ -515,11 +615,20 @@ export default function Ajukan() {
 
               <div className="field">
                 <label>Berkas Persyaratan</label>
-                <BerkasPersyaratan alasan={effectiveAlasan(f)} files={files} setFiles={setFiles} showErrors={showErr} />
+                {editId && (
+                  <div className="p-alert p-alert-info" style={{ marginBottom: 10 }}>
+                    <IcoInfo size={16} />
+                    <div>
+                      Berkas dari pengajuan sebelumnya tetap tersimpan{existingBerkas.length ? ` (${existingBerkas.length} berkas)` : ""} dan tidak perlu diunggah ulang.
+                      Unggah di sini hanya bila ingin <strong>menambah atau mengganti</strong> dokumen.
+                    </div>
+                  </div>
+                )}
+                <BerkasPersyaratan alasan={effectiveAlasan(f)} files={files} setFiles={setFiles} showErrors={showErr && !editId} />
               </div>
 
               <button className="btn btn-primary btn-block" disabled={busy} onClick={submitTunggal}>
-                {busy ? "⟳ Mengirim…" : "Kirim Pengajuan"}
+                {busy ? "⟳ Mengirim…" : editId ? "Kirim Ulang Pengajuan" : "Kirim Pengajuan"}
               </button>
             </>
             );

@@ -1,18 +1,23 @@
 -- ============================================================
---  RPC: ajukan_ulang_pengajuan(p_id text)
---  Mengajukan KEMBALI pengajuan yang berstatus 'ditolak' TANPA input ulang:
---  status dikembalikan ke 'diajukan' (masuk lagi ke antrean verifikasi Loket),
---  memakai data & berkas yang sudah ada. Pemohon bisa melengkapi/mengganti
---  berkas setelahnya (karena status 'diajukan' membuka kembali unggahan).
+--  RPC: ajukan_ulang_pengajuan(p_id text, p jsonb)
+--  Mengajukan KEMBALI pengajuan yang berstatus 'ditolak': memperbarui data
+--  (nama/nip/opd/jabatan/pangkat/alasan — hasil edit pemohon di form) lalu
+--  mengembalikan status ke 'diajukan' (masuk lagi ke antrean verifikasi Loket).
+--  Pengajuan yang sama (id & kodeAkses TETAP) dipakai ulang — pemohon tidak
+--  membuat pengajuan baru, jadi aturan "1 pengajuan per pegawai" terjaga.
 --
---  Keamanan: SECURITY DEFINER, otorisasi diperiksa DI DALAM fungsi
---  (kepemilikan submittedBy = auth.uid() + status HARUS 'ditolak') — pemohon
---  TIDAK diberi hak UPDATE umum lewat RLS (policy pengajuan_update hanya izinkan
---  pemilik saat status='diajukan'). Pola sama dgn tolak_bukti_hutang.
+--  p boleh null / sebagian kolom -> kolom yang tak dikirim dibiarkan apa adanya.
+--  Keamanan: SECURITY DEFINER, otorisasi diperiksa DI DALAM fungsi (kepemilikan
+--  submittedBy = auth.uid() + status HARUS 'ditolak'). Pemohon TIDAK diberi hak
+--  UPDATE umum lewat RLS. Pola sama dgn tolak_bukti_hutang.
 --
 --  Jalankan di: Supabase (project PRODUCTION) -> SQL Editor.
 -- ============================================================
-create or replace function public.ajukan_ulang_pengajuan(p_id text)
+
+-- Ganti versi lama (hanya reset status, tanpa edit) dengan versi (text, jsonb).
+drop function if exists public.ajukan_ulang_pengajuan(text);
+
+create or replace function public.ajukan_ulang_pengajuan(p_id text, p jsonb)
 returns jsonb language plpgsql security definer set search_path = public as $$
 declare
   uid         uuid := auth.uid();
@@ -37,10 +42,16 @@ begin
     raise exception 'Hanya pengajuan berstatus Ditolak yang dapat diajukan kembali.';
   end if;
 
-  -- Kembalikan ke keadaan awal antrean (mirror pengajuan online baru):
-  -- status 'diajukan', jalur/tahap direset, tanggal masuk = hari ini.
+  -- Perbarui data hasil edit (kolom yg tak dikirim di p dibiarkan) + reset ke
+  -- keadaan awal antrean: status 'diajukan', jalur/tahap dikosongkan, tgl hari ini.
   update public."Pengajuan"
-     set status         = 'diajukan',
+     set nama           = coalesce(p->>'nama',    nama),
+         nip            = coalesce(p->>'nip',     nip),
+         opd            = coalesce(p->>'opd',     opd),
+         jabatan        = coalesce(p->>'jabatan', jabatan),
+         pangkat        = coalesce(p->>'pangkat', pangkat),
+         alasan         = coalesce(p->>'alasan',  alasan),
+         status         = 'diajukan',
          jalur          = null,
          "tahapAktif"   = null,
          "tahapSelesai" = null,
@@ -52,17 +63,12 @@ begin
   insert into public."Riwayat" ("pengajuanId", tahap, waktu, catatan, "isKembali", oleh, "olehNama")
   values (
     p_id, null, to_char(now(), 'DD/MM/YYYY, HH24.MI.SS'),
-    'Pengajuan diajukan kembali oleh pemohon setelah sebelumnya ditolak. Menunggu verifikasi ulang Loket.',
+    'Pengajuan diperbarui & diajukan kembali oleh pemohon setelah sebelumnya ditolak. Menunggu verifikasi ulang Loket.',
     false, coalesce(v_oleh, ''), coalesce(v_oleh_nama, '')
   );
 
   return jsonb_build_object('ok', true);
 end;
 $$;
-revoke all     on function public.ajukan_ulang_pengajuan(text) from public;
-grant  execute on function public.ajukan_ulang_pengajuan(text) to authenticated;
-
--- ── UJI (opsional) ──
--- Sebagai pemohon pemilik pengajuan ditolak:
---   select public.ajukan_ulang_pengajuan('SKPP-2026-0037');  -- -> {"ok": true}
--- Status di "Pengajuan" berubah 'ditolak' -> 'diajukan', ada baris baru di "Riwayat".
+revoke all     on function public.ajukan_ulang_pengajuan(text, jsonb) from public;
+grant  execute on function public.ajukan_ulang_pengajuan(text, jsonb) to authenticated;
