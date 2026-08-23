@@ -79,7 +79,7 @@ export default function EmailTerkonfirmasi() {
             padding: "12px 16px",
           }}
         >
-          Silakan tutup tab ini. Halaman pada tab sebelumnya akan otomatis kembali ke beranda.
+          Silakan tutup tab ini.
         </div>
       </div>
     </div>
