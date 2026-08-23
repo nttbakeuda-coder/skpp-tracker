@@ -181,6 +181,7 @@ const newItem = () => ({
   _id: Date.now() + Math.random(),
   nama: "", nip: "", jabatan: "", jenisASN: "PNS", pangkat: "", alasan: "Pensiun",
   tmt: "", ahliWaris: "", namaAhliWaris: "", hubunganAhliWaris: "",
+  waPegawai: "", // nomor WA pegawai ybs (notifikasi tepat sasaran)
   files: [],   // berkas persyaratan pegawai ini: [{ file, jenis, _id }]
 });
 
@@ -210,6 +211,7 @@ export default function Ajukan() {
     ahliWaris: "",
     namaAhliWaris: "",
     hubunganAhliWaris: "",
+    waPegawai: "",
   });
   const [files, setFiles] = useState([]);
   // Bulk
@@ -458,6 +460,7 @@ export default function Ajukan() {
     const payload = {
       nama: f.nama.trim(), nip: f.nip.trim(), opd: f.opd,
       jabatan: f.jabatan.trim(), pangkat: f.pangkat, alasan: effectiveAlasan(f),
+      waPegawai: f.waPegawai.trim(),
     };
 
     // ── Mode "Ajukan kembali": perbarui pengajuan yang sama, status -> diajukan ──
@@ -518,6 +521,7 @@ export default function Ajukan() {
       items: items.map((it) => ({
         nama: it.nama.trim(), nip: it.nip.trim(),
         jabatan: it.jabatan.trim(), pangkat: it.pangkat, alasan: effectiveAlasan(it),
+        waPegawai: (it.waPegawai || "").trim(),
       })),
     });
     if (error || !data) {
@@ -606,6 +610,12 @@ export default function Ajukan() {
                 onPangkat={(v) => set("pangkat", v)}
                 error={fe.pangkat}
               />
+              {role === "bendahara" && (
+                <F label="Nomor WhatsApp Pegawai (opsional)">
+                  <input value={f.waPegawai} onChange={(e) => set("waPegawai", e.target.value.replace(/[^0-9+]/g, ""))} inputMode="tel" placeholder="mis. 081234567890" style={{ fontFamily: "monospace" }} />
+                  <div style={{ fontSize: 11, color: "var(--g500)", marginTop: 4 }}>Notifikasi progres SKPP dikirim ke nomor ini agar pegawai ybs menerima pembaruannya sendiri.</div>
+                </F>
+              )}
               <div className="p-grid2">
                 <F label="Keperluan SKPP *">
                   <select value={f.alasan} onChange={(e) => set("alasan", e.target.value)}>
@@ -681,6 +691,9 @@ export default function Ajukan() {
                     </F>
                     <F label="Jabatan *" error={ie.jabatan} style={{ marginBottom: 8 }}>
                       <input value={it.jabatan} onChange={(e) => setItem(it._id, "jabatan", e.target.value)} placeholder="Jabatan terakhir sesuai SK" />
+                    </F>
+                    <F label="No. WhatsApp Pegawai (opsional)" style={{ marginBottom: 8 }}>
+                      <input value={it.waPegawai || ""} onChange={(e) => setItem(it._id, "waPegawai", e.target.value.replace(/[^0-9+]/g, ""))} inputMode="tel" placeholder="Agar pegawai terima notifikasi" style={{ fontFamily: "monospace" }} />
                     </F>
                     <F label="Jenis ASN *" style={{ marginBottom: 8 }}>
                       <select value={it.jenisASN} onChange={(e) => setItemJenis(it._id, e.target.value)}>
