@@ -1,9 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth.jsx";
-import { IcoBook, IcoFileText, IcoLogOut, IcoMail } from "./Icons.jsx";
+import { IcoBook, IcoFileText, IcoLogOut, IcoMail, IcoDownload } from "./Icons.jsx";
 import { getPreferensiNotif, simpanPreferensiNotif } from "../portal.js";
+import { SUPABASE_URL } from "../config.js";
 import "../landing.css";
+
+// Buku panduan (PDF di bucket Storage publik "panduan") sesuai peran akun.
+function unduhPanduan(role) {
+  const f = role === "bendahara" ? "bendahara.pdf" : "pegawai.pdf";
+  window.open(`${SUPABASE_URL}/storage/v1/object/public/panduan/${f}?download`, "_blank", "noopener");
+}
 
 const ROLE_LABEL = { bendahara: "Bendahara OPD", pemohon: "Pegawai" };
 
@@ -217,6 +224,9 @@ export function AppHeader() {
           </div>
           <button type="button" className="lp-menu-item" onClick={() => { setOpen(false); setShowNotif(true); }}>
             <IcoMail size={15} /> Aktifkan Notifikasi
+          </button>
+          <button type="button" className="lp-menu-item" onClick={() => { setOpen(false); unduhPanduan(profile?.role); }}>
+            <IcoDownload size={15} /> Unduh Buku Panduan
           </button>
           <button type="button" className="lp-menu-item" onClick={() => { setOpen(false); nav("/panduan"); }}>
             <IcoBook size={15} /> Panduan
