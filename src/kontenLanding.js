@@ -1,6 +1,10 @@
 // Konten statis bersama landing & halaman dalam-aplikasi (Panduan, Regulasi).
 // Dipisah dari Landing.jsx supaya halaman lain bisa memakai data yang sama
 // tanpa duplikasi (dan tanpa melanggar aturan fast-refresh).
+import { SUPABASE_URL } from "./config.js";
+
+// Basis URL berkas panduan (bucket Storage publik "panduan").
+const PANDUAN_BUCKET = `${SUPABASE_URL}/storage/v1/object/public/panduan`;
 
 // Daftar regulasi + detail per-tab (Ringkasan/Pasal/Dokumen/Unduh).
 // Dua slot untuk admin (tab "Unduh"):
@@ -147,13 +151,13 @@ export const DOC_SLIDE_META = [
 // Kartu panduan per peran -- SATU sumber data, dipakai halaman Panduan di
 // luar login (Beranda) MAUPUN di dalam login (/panduan) supaya isinya identik.
 export const PANDUAN_PERAN = [
-  { label: "Untuk Bendahara OPD", pdf: "/panduan/panduan-bendahara-opd.pdf", items: [
+  { label: "Untuk Bendahara OPD", pdf: `${PANDUAN_BUCKET}/bendahara.pdf?download`, items: [
     "Mengelola pengajuan SKPP bagi pegawai di instansi",
     "Mengunggah dokumen persyaratan",
     "Memantau progres setiap pengajuan",
     "Mengunduh SKPP yang telah diterbitkan",
   ] },
-  { label: "Untuk Pegawai YBS", pdf: "/panduan/panduan-pegawai-ybs.pdf", items: [
+  { label: "Untuk Pegawai YBS", pdf: `${PANDUAN_BUCKET}/pegawai.pdf?download`, items: [
     "Mengajukan SKPP untuk diri sendiri",
     "Mengunggah dokumen persyaratan",
     "Memantau progres pengajuan",

@@ -5,6 +5,12 @@
 // fallback SPA (berkas BELUM ada), bukan PDF. Berkas PDF nyata bertipe
 // application/pdf (atau setidaknya bukan text/html).
 export async function bukaPdf(url, label) {
+  // URL absolut (mis. bucket Supabase Storage): buka langsung. HEAD lintas-domain
+  // bisa terblokir CORS dan tak perlu -- berkasnya memang ada di bucket publik.
+  if (/^https?:\/\//i.test(url)) {
+    window.open(url, "_blank", "noopener");
+    return;
+  }
   try {
     const res = await fetch(url, { method: "HEAD" });
     const type = (res.headers.get("content-type") || "").toLowerCase();
