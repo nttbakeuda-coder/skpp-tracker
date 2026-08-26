@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth.jsx";
-import { listPengajuanSaya, uploadBerkas, listBerkas, berkasUrl, unduhBerkas, unduhSkppFinal } from "../portal.js";
+import { listPengajuanSaya, uploadBerkas, listBerkas, berkasUrl, unduhBerkas, unduhSkppFinal, hapusBerkasByJenis } from "../portal.js";
 import { lacak, mekanismeHutangAktif, dokumenKurangAktif } from "../lacak.js";
 import { BerkasPersyaratan } from "../components/BerkasPersyaratan.jsx";
 import { ResultCard } from "../components/ResultCard.jsx";
@@ -77,6 +77,9 @@ function DokumenTerunggah({ berkas, loading }) {
   );
 }
 
+// Jenis berkas yang boleh diunggah (selaras BERKAS_ACCEPT di refdata.js).
+const ACCEPT_BERKAS = ".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png";
+
 // Tombol pilih 1 berkas (langsung ditambahkan ke antrean unggah, belum terkirim).
 function FileButton({ label, onPick }) {
   const ref = useRef(null);
@@ -88,7 +91,7 @@ function FileButton({ label, onPick }) {
       <input
         ref={ref}
         type="file"
-        accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+        accept={ACCEPT_BERKAS}
         style={{ display: "none" }}
         onChange={(e) => {
           const f = e.target.files?.[0];
@@ -101,10 +104,15 @@ function FileButton({ label, onPick }) {
 }
 
 // Satu baris mekanisme: kalau berkasnya SUDAH ada di daftar terunggah, tampil
-// tombol "Lihat" (buka lagi); kalau belum, tampil tombol pilih file.
+// tombol Lihat/Unduh + "Ganti"; kalau belum, tampil tombol pilih file.
+// PENTING: tombol "Ganti" wajib ada -- staf sering mengembalikan berkas justru
+// karena dokumen yang SUDAH diunggah perlu diperbaiki. Tanpa itu pemohon tak
+// punya cara memilih berkas pengganti, antrean unggah tetap kosong, dan tombol
+// "Unggah" (disabled saat antrean kosong) tak pernah bisa ditekan.
 function HutangMechRow({ label, existing, onPick }) {
   const [opening, setOpening] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const gantiRef = useRef(null);
 
   async function lihat() {
     setOpening(true);
@@ -131,6 +139,20 @@ function HutangMechRow({ label, existing, onPick }) {
         <button type="button" className="p-link" disabled={downloading} onClick={unduh}>
           {downloading ? "⟳" : "Unduh"}
         </button>
+        <button type="button" className="p-link" onClick={() => gantiRef.current?.click()}>
+          Ganti
+        </button>
+        <input
+          ref={gantiRef}
+          type="file"
+          accept={ACCEPT_BERKAS}
+          style={{ display: "none" }}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) onPick(file);
+            e.target.value = "";
+          }}
+        />
       </div>
     );
   }
@@ -443,6 +465,11 @@ export default function PengajuanSaya() {
     if (!files.length) return;
     setUploading(true);
     setUploadMsg("");
+    // Berkas pengganti harus MENIMPA berkas lama berjenis sama, bukan menumpuk
+    // -- kalau tidak, satu dokumen tampil dua kali di dasbor & petugas tak tahu
+    // mana yang terbaru. Jenis kosong (berkas pelengkap bebas) dilewati.
+    const jenisGanti = [...new Set(files.map((x) => x.jenis).filter(Boolean))];
+    if (jenisGanti.length) await hapusBerkasByJenis(pengajuanId, jenisGanti);
     let ok = 0, fail = 0;
     for (const x of files) {
       const { error } = await uploadBerkas({ uid: user.id, pengajuanId, file: x.file, jenis: x.jenis });
