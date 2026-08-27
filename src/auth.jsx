@@ -5,25 +5,32 @@ const AuthCtx = createContext(null);
 
 // Ambil baris profil (role, akun_status, dll) milik user yang login.
 // RLS mengizinkan user membaca profilnya sendiri.
+// Mengembalikan { data, error }: galat TIDAK boleh dibuang, sebab profil yang
+// gagal dibaca akan tampak seperti akun "belum disetujui" -- dua hal yang
+// sangat berbeda bagi pengguna.
 async function fetchProfile(uid) {
-  if (!uid) return null;
-  const { data } = await supabase
+  if (!uid) return { data: null, error: null };
+  const { data, error } = await supabase
     .from("profiles")
     .select("id, username, nama, role, opd, email, akun_status")
     .eq("id", uid)
     .maybeSingle();
-  return data || null;
+  return { data: data || null, error: error || null };
 }
 
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
+  const [profileError, setProfileError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [recovery, setRecovery] = useState(false); // true saat user membuka tautan reset sandi dari email
 
   const loadProfile = useCallback(async (sess) => {
     const uid = sess?.user?.id;
-    setProfile(uid ? await fetchProfile(uid) : null);
+    if (!uid) { setProfile(null); setProfileError(null); return; }
+    const { data, error } = await fetchProfile(uid);
+    setProfile(data);
+    setProfileError(error);
   }, []);
 
   useEffect(() => {
@@ -60,6 +67,11 @@ export function AuthProvider({ children }) {
     isApproved: profile?.akun_status === "approved",
     isPending: profile?.akun_status === "pending",
     isRejected: profile?.akun_status === "rejected",
+    // Sudah login tetapi profilnya tak terbaca -> status akun TIDAK DIKETAHUI.
+    // Jangan tampilkan sebagai "menunggu persetujuan"; itu menyesatkan pemohon
+    // yang akunnya sebenarnya sudah disetujui.
+    profilGagal: !!session && !profile,
+    profileError,
     role: profile?.role || null,
 
     async signUp({ email, password, role, nama, nip, opd, captchaToken }) {
@@ -86,10 +98,22 @@ export function AuthProvider({ children }) {
       // Blokir akun yang BELUM disetujui: tak boleh masuk sampai admin menyetujui.
       // Ambil status profil, lalu keluarkan sesi bila pending/rejected.
       const uid = res.data?.user?.id;
-      const prof = uid ? await fetchProfile(uid) : null;
+      const { data: prof, error: profErr } = uid ? await fetchProfile(uid) : { data: null, error: null };
       if (prof && (prof.akun_status === "pending" || prof.akun_status === "rejected")) {
         await supabase.auth.signOut();
         return { data: { user: null, session: null }, error: { code: "not_approved", akun_status: prof.akun_status } };
+      }
+      // Profil tak terbaca: JANGAN diamkan. Tanpa profil, portal tak tahu peran
+      // & status akun sehingga tampilannya seolah-olah belum disetujui.
+      if (!prof) {
+        await supabase.auth.signOut();
+        return {
+          data: { user: null, session: null },
+          error: {
+            code: "profil_tidak_terbaca",
+            message: profErr?.message || "Profil akun tidak ditemukan.",
+          },
+        };
       }
       return res;
     },
