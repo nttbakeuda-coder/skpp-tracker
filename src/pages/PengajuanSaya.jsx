@@ -231,11 +231,11 @@ function RincianKekuranganBlock({ berkas }) {
   }
 
   return (
-    <div style={{ marginTop: 12, padding: "12px 14px", background: "#fff", border: "1px solid var(--g200)", borderRadius: 10 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--g600)", marginBottom: 2 }}>
+    <div style={{ marginBottom: 14, padding: "12px 14px", background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 10 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: "#1e40af", marginBottom: 2 }}>
         Rincian Perhitungan Kekurangan Pembayaran Pangkat Pengabdian
       </div>
-      <div style={{ fontSize: 11.5, color: "var(--g500)", marginBottom: 8 }}>
+      <div style={{ fontSize: 11.5, color: "#1d4ed8", marginBottom: 8 }}>
         Diserahkan oleh Staf Pengampu OPD sebagai dasar penerbitan SPP-SPM.
       </div>
       <div className="p-file-row">
@@ -768,6 +768,7 @@ export default function PengajuanSaya() {
                   {!lacakLoading && lacakError && (
                     <div className="p-alert p-alert-err"><IcoAlertTriangle size={16} /><div>{lacakError}</div></div>
                   )}
+                  {!lacakLoading && lacakResult && <RincianKekuranganBlock berkas={berkas} />}
                   {!lacakLoading && lacakResult && (
                     <ResultCard
                       p={lacakResult}
@@ -798,7 +799,6 @@ export default function PengajuanSaya() {
                       })()}
                     />
                   )}
-                  {!lacakLoading && lacakResult && <RincianKekuranganBlock berkas={berkas} />}
                 </>
               )}
 
