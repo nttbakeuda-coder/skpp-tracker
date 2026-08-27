@@ -203,6 +203,57 @@ function HutangUploadBlock({ mek, berkas, files, onAdd, onRemove, uploading, upl
   );
 }
 
+// Rincian Perhitungan Kekurangan Pembayaran Pangkat Pengabdian (tahap B5,
+// khusus Jalur B). Diunggah Staf Pengampu OPD dan MEMANG ditujukan untuk
+// Bendahara OPD -- dokumen inilah yang ditunggu untuk menerbitkan SPP-SPM.
+// Ditampilkan sebagai panel tersendiri di tab Status supaya mudah ditemukan,
+// tidak tenggelam di antara berkas persyaratan pada tab Dokumen.
+const JENIS_RINCIAN_KEKURANGAN = "Rincian Perhitungan Kekurangan Pembayaran Pangkat Pengabdian";
+
+function RincianKekuranganBlock({ berkas }) {
+  const item = (berkas || []).find((b) => b.jenis === JENIS_RINCIAN_KEKURANGAN);
+  const [opening, setOpening] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  if (!item) return null;
+
+  async function lihat() {
+    setOpening(true);
+    const url = await berkasUrl(item.path);
+    setOpening(false);
+    if (url) window.open(url, "_blank", "noopener");
+    else alert("Gagal membuka berkas.");
+  }
+  async function unduh() {
+    setDownloading(true);
+    const ok = await unduhBerkas(item.path, JENIS_RINCIAN_KEKURANGAN + extFromPath(item.path));
+    setDownloading(false);
+    if (!ok) alert("Gagal mengunduh berkas.");
+  }
+
+  return (
+    <div style={{ marginTop: 12, padding: "12px 14px", background: "#fff", border: "1px solid var(--g200)", borderRadius: 10 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--g600)", marginBottom: 2 }}>
+        Rincian Perhitungan Kekurangan Pembayaran Pangkat Pengabdian
+      </div>
+      <div style={{ fontSize: 11.5, color: "var(--g500)", marginBottom: 8 }}>
+        Diserahkan oleh Staf Pengampu OPD sebagai dasar penerbitan SPP-SPM.
+      </div>
+      <div className="p-file-row">
+        <span style={{ display: "inline-flex", color: "var(--g500)" }}>
+          {/\.pdf$/i.test(item.path) ? <IcoFileText size={15} /> : <IcoImage size={15} />}
+        </span>
+        <span className="fn">Rincian perhitungan kekurangan</span>
+        <button type="button" className="p-link" disabled={opening} onClick={lihat}>
+          {opening ? "⟳" : "Lihat"}
+        </button>
+        <button type="button" className="p-link" disabled={downloading} onClick={unduh}>
+          {downloading ? "⟳" : "Unduh"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // Dokumen persyaratan yang diminta dilengkapi ulang saat berkas dikembalikan
 // (alasan dokumen kurang/tidak sesuai) -- dirender LANGSUNG DI BAWAH keterangan
 // pengembalian pada tab Lacak, satu tombol unggah per dokumen yang diminta.
@@ -747,6 +798,7 @@ export default function PengajuanSaya() {
                       })()}
                     />
                   )}
+                  {!lacakLoading && lacakResult && <RincianKekuranganBlock berkas={berkas} />}
                 </>
               )}
 
