@@ -8,14 +8,24 @@ const AuthCtx = createContext(null);
 // Mengembalikan { data, error }: galat TIDAK boleh dibuang, sebab profil yang
 // gagal dibaca akan tampak seperti akun "belum disetujui" -- dua hal yang
 // sangat berbeda bagi pengguna.
-async function fetchProfile(uid) {
+// Dicoba beberapa kali: portal dilayani dari domain berbeda dengan servernya,
+// sehingga di jaringan kantor yang lambat/terbatas permintaan pertama kerap
+// gagal padahal datanya ada. Baris yang memang tidak ada BUKAN galat -- itu
+// langsung dikembalikan tanpa diulang.
+async function fetchProfile(uid, percobaan = 3) {
   if (!uid) return { data: null, error: null };
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id, username, nama, role, opd, email, akun_status")
-    .eq("id", uid)
-    .maybeSingle();
-  return { data: data || null, error: error || null };
+  let galatTerakhir = null;
+  for (let i = 0; i < percobaan; i++) {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id, username, nama, role, opd, email, akun_status")
+      .eq("id", uid)
+      .maybeSingle();
+    if (!error) return { data: data || null, error: null };
+    galatTerakhir = error;
+    if (i < percobaan - 1) await new Promise((r) => setTimeout(r, 600 * (i + 1)));
+  }
+  return { data: null, error: galatTerakhir };
 }
 
 export function AuthProvider({ children }) {

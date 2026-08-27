@@ -42,7 +42,7 @@ const ALUR = [
 const HASH_PAGE = { prosedur: 1, alur: 1, lacak: 2, panduan: 3, regulasi: 4, kontak: 5 };
 
 export default function Landing() {
-  const { isLoggedIn, isApproved, isRejected, profilGagal, profile, signOut } = useAuth();
+  const { isLoggedIn, isApproved, isRejected, profilGagal, profileError, refreshProfile, profile, signOut } = useAuth();
   const nav = useNavigate();
   const loc = useLocation();
   const [page, setPage] = useState(() => HASH_PAGE[loc.hash.slice(1)] ?? 0);
@@ -337,7 +337,28 @@ export default function Landing() {
                             {isRejected
                               ? "Pendaftaran akun Anda tidak disetujui. Silakan hubungi Bidang Perbendaharaan."
                               : profilGagal
-                              ? "Profil akun Anda tidak dapat dibaca, sehingga status akun belum diketahui. Coba muat ulang halaman; bila tetap muncul, hubungi Bidang Perbendaharaan."
+                              ? (
+                                <div>
+                                  <div>
+                                    {profileError
+                                      ? "Profil akun tidak dapat dibaca dari jaringan ini, sehingga status akun belum diketahui. Perangkat lain atau jaringan lain (mis. data seluler) biasanya berhasil."
+                                      : "Data profil akun tidak ditemukan. Silakan hubungi Bidang Perbendaharaan."}
+                                  </div>
+                                  {profileError?.message && (
+                                    <div style={{ marginTop: 6, fontSize: 11.5, opacity: 0.8, fontFamily: "var(--mono, monospace)" }}>
+                                      {profileError.message}
+                                    </div>
+                                  )}
+                                  <button
+                                    type="button"
+                                    className="lp-auth-ghost"
+                                    style={{ marginTop: 9, height: 32, padding: "0 14px", fontSize: 12.5 }}
+                                    onClick={() => refreshProfile()}
+                                  >
+                                    Coba baca ulang
+                                  </button>
+                                </div>
+                              )
                               : "Akun Anda menunggu persetujuan Administrator. Anda dapat mengajukan SKPP setelah akun disetujui."}
                           </div>
                         )
