@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Kuesioner Kepuasan Pengguna — KATONG SKPP</title>
+<link rel="icon" href="/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=DM+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#002352; --navy-2:#0a3a78; --gold:#e0a53c;
+  --paper:#f2f5f9; --surface:#ffffff; --surface-2:#f7f9fc;
+  --ink:#132033; --ink-soft:#33455c; --muted:#5f7189; --faint:#8a99ad;
+  --line:#dde5ef; --line-strong:#c3d0e0;
+  --ok:#1d6b41; --err:#a32b25;
+  /* Skala kepuasan — diverging (buruk ⇄ baik), tervalidasi mode terang */
+  --s1:#b03533; --s2:#e8908e; --s3:#6bb0f2; --s4:#1c5aa8;
+  --bar:#1c5aa8;
+  --shadow:0 1px 2px rgba(19,32,51,.05), 0 8px 24px rgba(19,32,51,.07);
+}
+@media (prefers-color-scheme:dark){
+  :root:where(:not([data-theme="light"])){
+    --paper:#0f151d; --surface:#161e29; --surface-2:#1b2431;
+    --ink:#e8edf4; --ink-soft:#c6d1de; --muted:#93a2b5; --faint:#6f8095;
+    --line:#28323f; --line-strong:#3a4757;
+    --navy:#4b8fd4; --navy-2:#6ba5e2; --gold:#e0a53c;
+    --ok:#6cbf8e; --err:#e08a83;
+    --s1:#e05f5a; --s2:#9e3d39; --s3:#3577c2; --s4:#57aef0;
+    --bar:#4b8fd4;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.4);
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--paper);color:var(--ink);
+  font-family:"DM Sans",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:720px;margin:0 auto;padding:18px 16px 56px}
+.wide{max-width:940px}
+
+/* ── Kepala ── */
+header{background:linear-gradient(135deg,var(--navy),var(--navy-2));
+  border-radius:16px;padding:24px 22px;margin-bottom:16px;box-shadow:var(--shadow);color:#fff}
+.eyebrow{display:inline-block;background:var(--gold);color:#2b1e05;
+  font-family:"IBM Plex Mono",monospace;font-size:10.5px;font-weight:600;
+  letter-spacing:.12em;text-transform:uppercase;padding:3px 10px;border-radius:999px;margin-bottom:10px}
+header h1{font-family:"Plus Jakarta Sans",sans-serif;font-size:21px;font-weight:800;
+  line-height:1.3;letter-spacing:-.01em;margin-bottom:7px;text-wrap:balance}
+header p{font-size:13.5px;line-height:1.55;color:#c8d8ec}
+
+/* ── Kartu ── */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  padding:18px;margin-bottom:12px;box-shadow:var(--shadow)}
+.card h2{font-family:"Plus Jakarta Sans",sans-serif;font-size:14px;font-weight:700;
+  color:var(--navy);margin-bottom:12px}
+label.f{display:block;font-size:12.5px;font-weight:600;color:var(--ink-soft);margin:12px 0 5px}
+label.f:first-of-type{margin-top:0}
+input[type=text],select,textarea{width:100%;border:1px solid var(--line-strong);border-radius:9px;
+  padding:10px 12px;font-size:14.5px;font-family:inherit;background:var(--surface-2);color:var(--ink)}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{
+  outline:2px solid var(--navy);outline-offset:2px}
+textarea{min-height:88px;resize:vertical}
+.req{color:var(--err);font-weight:700}
+.hint{font-size:12px;color:var(--faint);margin-top:5px}
+
+/* ── Pertanyaan ── */
+.q{display:flex;gap:9px;align-items:flex-start;margin-bottom:11px}
+.qn{flex:none;width:23px;height:23px;border-radius:50%;background:var(--navy);color:#fff;
+  font-family:"IBM Plex Mono",monospace;font-size:11.5px;font-weight:600;
+  display:inline-flex;align-items:center;justify-content:center;margin-top:1px}
+.qt{font-size:14.5px;font-weight:600;line-height:1.45;color:var(--ink)}
+.scale{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.scale button{border:1.5px solid var(--line-strong);background:var(--surface-2);border-radius:10px;
+  padding:9px 5px;cursor:pointer;font-family:inherit;font-size:11.5px;line-height:1.3;
+  color:var(--muted);transition:.14s}
+.scale button b{display:block;font-family:"IBM Plex Mono",monospace;font-size:15px;
+  font-weight:600;margin-bottom:2px}
+.scale button:hover{border-color:var(--navy)}
+.scale button[aria-pressed=true]{background:var(--navy);border-color:var(--navy);color:#fff}
+
+/* ── Tombol ── */
+.btn{width:100%;border:0;border-radius:11px;padding:14px;font-family:"Plus Jakarta Sans",sans-serif;
+  font-size:15px;font-weight:700;cursor:pointer}
+.btn.primary{background:var(--gold);color:#2b1e05}
+.btn.primary:disabled{opacity:.6;cursor:wait}
+.btn.ghost{background:var(--surface-2);color:var(--navy);border:1px solid var(--line-strong);margin-top:8px}
+.note{font-size:12px;color:var(--faint);text-align:center;margin-top:11px;line-height:1.5}
+
+.alert{border-radius:11px;padding:11px 14px;font-size:13.5px;margin-bottom:12px}
+.alert.err{background:#fdeceb;color:#8a1f19;border:1px solid #f2c4c0}
+@media (prefers-color-scheme:dark){:root:where(:not([data-theme="light"])) .alert.err{background:#2f1c1a;color:#e8a09a;border-color:#5a322e}}
+
+.done{text-align:center;padding:36px 18px}
+.done .tick{width:54px;height:54px;border-radius:50%;background:var(--ok);color:#fff;
+  display:inline-flex;align-items:center;justify-content:center;font-size:27px;margin-bottom:12px}
+.done h2{font-family:"Plus Jakarta Sans",sans-serif;font-size:19px;color:var(--navy);margin-bottom:7px}
+.done p{font-size:14px;color:var(--muted);line-height:1.6;max-width:44ch;margin:0 auto}
+
+footer{font-size:12px;color:var(--faint);text-align:center;margin-top:18px;line-height:1.7}
+footer button{background:none;border:0;color:var(--navy);cursor:pointer;
+  font-family:inherit;font-size:12px;text-decoration:underline;padding:0}
+
+/* ── Rekap ── */
+.hero{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:center}
+.ikm{text-align:center;padding:16px 20px;background:var(--surface-2);
+  border:1px solid var(--line);border-radius:14px;min-width:150px}
+.ikm .lbl{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--faint)}
+.ikm .val{font-family:"Plus Jakarta Sans",sans-serif;font-size:42px;font-weight:800;
+  line-height:1.05;margin-top:4px;font-variant-numeric:tabular-nums;color:var(--navy)}
+.ikm .mutu{display:inline-block;margin-top:7px;font-size:12.5px;font-weight:700;
+  padding:3px 13px;border-radius:999px;background:var(--navy);color:#fff}
+.stats{display:flex;gap:10px;flex-wrap:wrap}
+.stat{flex:1 1 110px;background:var(--surface-2);border:1px solid var(--line);
+  border-radius:11px;padding:11px 13px}
+.stat b{display:block;font-family:"Plus Jakarta Sans",sans-serif;font-size:22px;font-weight:700;
+  font-variant-numeric:tabular-nums;color:var(--ink)}
+.stat span{font-size:11.5px;color:var(--muted)}
+
+.rowbar{display:grid;grid-template-columns:minmax(0,310px) minmax(0,1fr) 46px;gap:12px;align-items:center;margin-bottom:8px}
+.rowbar .nm{font-size:12.5px;color:var(--ink-soft);line-height:1.35}
+.rowbar .nm i{font-family:"IBM Plex Mono",monospace;font-style:normal;color:var(--faint);margin-right:5px}
+.track{height:10px;background:var(--surface-2);border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.track div{height:100%;background:var(--bar);border-radius:999px}
+.rowbar .vl{font-family:"IBM Plex Mono",monospace;font-size:12.5px;font-weight:600;
+  text-align:right;font-variant-numeric:tabular-nums;color:var(--ink)}
+
+/* Diverging stacked (Likert) */
+.lik{display:grid;grid-template-columns:minmax(0,310px) minmax(0,1fr);gap:12px;align-items:center;margin-bottom:7px}
+.lik .nm{font-size:12.5px;color:var(--ink-soft);line-height:1.35}
+.lik .nm i{font-family:"IBM Plex Mono",monospace;font-style:normal;color:var(--faint);margin-right:5px}
+.likbar{position:relative;height:18px}
+.likbar .mid{position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--line-strong)}
+.seg{position:absolute;top:0;height:18px}
+.seg:first-of-type{border-radius:4px 0 0 4px}
+.seg:last-of-type{border-radius:0 4px 4px 0}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin:10px 0 14px;font-size:12px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{width:11px;height:11px;border-radius:3px;display:inline-block}
+
+table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:10px}
+th,td{border:1px solid var(--line);padding:6px 9px;text-align:left}
+th{background:var(--navy);color:#fff;font-size:11.5px;font-weight:600}
+td.n{font-family:"IBM Plex Mono",monospace;text-align:right;font-variant-numeric:tabular-nums}
+.saran{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:7px}
+.saran p{font-size:13.5px;color:var(--ink-soft);line-height:1.5}
+.saran span{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--faint);
+  display:block;margin-top:5px}
+h3.sub{font-family:"Plus Jakarta Sans",sans-serif;font-size:13px;font-weight:700;
+  color:var(--ink);margin:18px 0 8px}
+h3.sub:first-child{margin-top:0}
+
+@media (max-width:560px){
+  .hero{grid-template-columns:1fr}
+  .rowbar{grid-template-columns:minmax(0,1fr) 42px;row-gap:4px}
+  .rowbar .nm{grid-column:1 / -1}
+  .lik{grid-template-columns:1fr;row-gap:4px}
+  .scale{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+<div class="wrap" id="root">
+
+  <header>
+    <span class="eyebrow">Uji Coba Terbatas</span>
+    <h1>Kuesioner Kepuasan Pengguna Aplikasi KATONG SKPP</h1>
+    <p>Bidang Perbendaharaan · Badan Keuangan Daerah Provinsi Nusa Tenggara Timur.
+       Pengisian ± 2 menit. Identitas boleh dikosongkan.</p>
+  </header>
+
+  <div id="err" class="alert err" style="display:none" role="alert"></div>
+
+  <main id="form">
+    <section class="card">
+      <h2>Identitas Responden</h2>
+      <label class="f" for="kategori">Kategori responden <span class="req">*</span></label>
+      <select id="kategori">
+        <option value="">— pilih —</option>
+        <option value="pemohon">Pegawai / Pemohon (ASN atau purnabakti)</option>
+        <option value="bendahara">Bendahara / Pengelola Kepegawaian OPD</option>
+        <option value="internal">Petugas Internal Bidang Perbendaharaan</option>
+      </select>
+      <label class="f" for="nama">Nama <span style="font-weight:500;color:var(--faint)">(opsional)</span></label>
+      <input type="text" id="nama" autocomplete="name" placeholder="boleh dikosongkan">
+      <label class="f" for="opd">OPD / Unit Kerja <span style="font-weight:500;color:var(--faint)">(opsional)</span></label>
+      <input type="text" id="opd" placeholder="contoh: Dinas Kesehatan Provinsi NTT">
+    </section>
+
+    <div id="soal"></div>
+
+    <section class="card">
+      <h2>Saran atau Masukan Perbaikan</h2>
+      <textarea id="saran" placeholder="Bagian mana yang menurut Anda perlu diperbaiki?"></textarea>
+      <p class="hint">Opsional, namun sangat membantu penyempurnaan aplikasi.</p>
+    </section>
+
+    <button class="btn primary" id="kirim">Kirim Jawaban</button>
+    <p class="note">Skala penilaian: 1 = Tidak Baik · 2 = Kurang Baik · 3 = Baik · 4 = Sangat Baik</p>
+  </main>
+
+  <section class="card done" id="selesai" style="display:none">
+    <div class="tick" aria-hidden="true">✓</div>
+    <h2>Terima kasih</h2>
+    <p>Jawaban Anda telah tersimpan dan akan menjadi bahan penyempurnaan aplikasi
+       serta layanan penerbitan SKPP.</p>
+    <button class="btn ghost" id="ulang" style="max-width:240px;margin:16px auto 0">Isi jawaban baru</button>
+  </section>
+
+  <div id="rekap"></div>
+
+  <footer>
+    © 2026 Bidang Perbendaharaan · Badan Keuangan Daerah Provinsi NTT<br>
+    <button id="bukaRekap">Rekap hasil (khusus pengelola)</button>
+  </footer>
+
+</div>
+
+<script>
+"use strict";
+
+const SUPABASE_URL = "https://phxyrferpnylgbbghgsn.supabase.co";
+const SUPABASE_KEY = "sb_publishable_jqC1ntXlQai4j2X_e9x1vg_VZ0E6nBy";
+
+const ASPEK = [
+  "Kemudahan mendaftar akun dan masuk ke aplikasi",
+  "Kemudahan mengisi formulir pengajuan SKPP",
+  "Kejelasan daftar dokumen persyaratan yang harus dilengkapi",
+  "Kemudahan mengunggah berkas persyaratan",
+  "Kemudahan memantau posisi dan tahapan pengajuan",
+  "Ketepatan waktu pemberitahuan setiap perubahan status",
+  "Kejelasan informasi ketika berkas dikembalikan untuk dilengkapi",
+  "Kecepatan penerbitan SKPP dibanding cara sebelumnya",
+  "Kepuasan terhadap aplikasi secara keseluruhan",
+];
+const SKALA = ["Tidak Baik", "Kurang Baik", "Baik", "Sangat Baik"];
+const KATEGORI_LABEL = {
+  pemohon: "Pegawai / Pemohon",
+  bendahara: "Bendahara OPD",
+  internal: "Petugas Internal",
+};
+
+const $ = (id) => document.getElementById(id);
+const jawaban = {};
+
+/* ── Panggilan RPC Supabase ─────────────────────────────────────────────── */
+async function rpc(nama, body) {
+  const res = await fetch(SUPABASE_URL + "/rest/v1/rpc/" + nama, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: "Bearer " + SUPABASE_KEY,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+  let data = null;
+  try { data = await res.json(); } catch { /* body kosong */ }
+  if (!res.ok) {
+    throw new Error((data && (data.message || data.hint)) || "Gagal menghubungi server.");
+  }
+  return data;
+}
+
+function tampilErr(pesan) {
+  const el = $("err");
+  el.textContent = pesan;
+  el.style.display = "block";
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  clearTimeout(tampilErr._t);
+  tampilErr._t = setTimeout(() => { el.style.display = "none"; }, 6000);
+}
+
+/* ── Bangun daftar pertanyaan ───────────────────────────────────────────── */
+ASPEK.forEach((teks, i) => {
+  const sec = document.createElement("section");
+  sec.className = "card";
+  const q = document.createElement("div");
+  q.className = "q";
+  q.innerHTML = '<span class="qn">' + (i + 1) + '</span>';
+  const t = document.createElement("div");
+  t.className = "qt";
+  t.textContent = teks + " ";
+  const bintang = document.createElement("span");
+  bintang.className = "req";
+  bintang.textContent = "*";
+  t.appendChild(bintang);
+  q.appendChild(t);
+  sec.appendChild(q);
+
+  const grid = document.createElement("div");
+  grid.className = "scale";
+  grid.setAttribute("role", "group");
+  grid.setAttribute("aria-label", "Penilaian nomor " + (i + 1));
+  SKALA.forEach((label, k) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.setAttribute("aria-pressed", "false");
+    b.innerHTML = "<b>" + (k + 1) + "</b>";
+    b.appendChild(document.createTextNode(label));
+    b.addEventListener("click", () => {
+      jawaban[i] = k + 1;
+      [...grid.children].forEach((x) => x.setAttribute("aria-pressed", "false"));
+      b.setAttribute("aria-pressed", "true");
+    });
+    grid.appendChild(b);
+  });
+  sec.appendChild(grid);
+  $("soal").appendChild(sec);
+});
+
+/* ── Kirim ──────────────────────────────────────────────────────────────── */
+$("kirim").addEventListener("click", async () => {
+  const kategori = $("kategori").value;
+  if (!kategori) return tampilErr("Mohon pilih kategori responden terlebih dahulu.");
+  for (let i = 0; i < ASPEK.length; i++) {
+    if (!jawaban[i]) return tampilErr("Penilaian nomor " + (i + 1) + " belum diisi.");
+  }
+  const muatan = {
+    kategori,
+    nama: $("nama").value.trim(),
+    opd: $("opd").value.trim(),
+    saran: $("saran").value.trim(),
+  };
+  ASPEK.forEach((_, i) => { muatan["u" + (i + 1)] = jawaban[i]; });
+
+  const tombol = $("kirim");
+  tombol.disabled = true;
+  tombol.textContent = "Menyimpan…";
+  try {
+    await rpc("kirim_kuesioner", { p: muatan });
+    $("form").style.display = "none";
+    $("selesai").style.display = "block";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  } catch (e) {
+    tampilErr(e.message);
+  }
+  tombol.disabled = false;
+  tombol.textContent = "Kirim Jawaban";
+});
+
+$("ulang").addEventListener("click", () => {
+  Object.keys(jawaban).forEach((k) => delete jawaban[k]);
+  document.querySelectorAll(".scale button").forEach((b) => b.setAttribute("aria-pressed", "false"));
+  ["kategori", "nama", "opd", "saran"].forEach((id) => { $(id).value = ""; });
+  $("selesai").style.display = "none";
+  $("form").style.display = "block";
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
+
+/* ── Rekap ──────────────────────────────────────────────────────────────── */
+let csvTerakhir = "";
+
+$("bukaRekap").addEventListener("click", async () => {
+  const kode = prompt("Masukkan kode akses rekap:");
+  if (!kode) return;
+  try {
+    const d = await rpc("rekap_kuesioner", { p_kode: kode });
+    gambarRekap(d);
+  } catch (e) {
+    tampilErr(e.message);
+  }
+});
+
+const esc = (s) => String(s == null ? "" : s)
+  .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const pct = (a, b) => (b ? (a / b) * 100 : 0);
+
+function gambarRekap(d) {
+  const box = $("rekap");
+  $("form").style.display = "none";
+  $("selesai").style.display = "none";
+  document.getElementById("root").classList.add("wide");
+
+  if (!d || !d.responden) {
+    box.innerHTML = '<section class="card"><h2>Rekap Hasil Kuesioner</h2>'
+      + '<p style="font-size:13.5px;color:var(--muted)">Belum ada jawaban yang masuk.</p></section>';
+    box.scrollIntoView({ behavior: "smooth" });
+    return;
+  }
+
+  const n = d.responden;
+  const nrr = (d.nrr || []).map(Number);
+  const dist = d.distribusi || [];
+  const komposisi = d.komposisi || {};
+  const saran = d.saran || [];
+
+  /* Ringkasan angka */
+  let h = '<section class="card">'
+    + '<h2>Rekap Hasil Kuesioner</h2>'
+    + '<div class="hero">'
+    + '<div class="ikm"><div class="lbl">Nilai IKM</div>'
+    + '<div class="val">' + esc(d.ikm) + '</div>'
+    + '<div class="mutu">Mutu ' + esc(d.mutu) + '</div></div>'
+    + '<div class="stats">'
+    + '<div class="stat"><b>' + n + '</b><span>Responden</span></div>';
+  Object.keys(KATEGORI_LABEL).forEach((k) => {
+    h += '<div class="stat"><b>' + (komposisi[k] || 0) + '</b><span>'
+      + KATEGORI_LABEL[k] + '</span></div>';
+  });
+  h += '</div></div></section>';
+
+  /* Nilai rata-rata per aspek — satu seri, satu warna, label langsung */
+  h += '<section class="card"><h3 class="sub">Nilai rata-rata tiap aspek <span style="font-weight:500;color:var(--faint)">(skala 1–4)</span></h3>';
+  ASPEK.forEach((teks, i) => {
+    const v = nrr[i] || 0;
+    h += '<div class="rowbar">'
+      + '<div class="nm"><i>' + (i + 1) + '</i>' + esc(teks) + '</div>'
+      + '<div class="track"><div style="width:' + pct(v, 4).toFixed(1) + '%"></div></div>'
+      + '<div class="vl">' + v.toFixed(2) + '</div></div>';
+  });
+  h += '</section>';
+
+  /* Sebaran jawaban — diverging stacked (Likert) */
+  h += '<section class="card"><h3 class="sub">Sebaran jawaban tiap aspek</h3>'
+    + '<div class="legend">'
+    + '<span><i style="background:var(--s1)"></i>Tidak Baik</span>'
+    + '<span><i style="background:var(--s2)"></i>Kurang Baik</span>'
+    + '<span><i style="background:var(--s3)"></i>Baik</span>'
+    + '<span><i style="background:var(--s4)"></i>Sangat Baik</span>'
+    + '</div>';
+  ASPEK.forEach((teks, i) => {
+    const c = (dist[i] || [0, 0, 0, 0]).map(Number);
+    const neg = pct(c[0] + c[1], n) / 2;      // separuh lebar = sisi kiri
+    const p1 = pct(c[0], n) / 2, p2 = pct(c[1], n) / 2;
+    const p3 = pct(c[2], n) / 2, p4 = pct(c[3], n) / 2;
+    const judul = SKALA.map((s, k) => s + ": " + c[k]).join(" · ");
+    h += '<div class="lik"><div class="nm"><i>' + (i + 1) + '</i>' + esc(teks) + '</div>'
+      + '<div class="likbar" title="' + esc(judul) + '"><div class="mid"></div>'
+      + '<div class="seg" style="background:var(--s1);left:' + (50 - neg) + '%;width:' + p1 + '%"></div>'
+      + '<div class="seg" style="background:var(--s2);left:' + (50 - neg + p1) + '%;width:' + p2 + '%"></div>'
+      + '<div class="seg" style="background:var(--s3);left:50%;width:' + p3 + '%"></div>'
+      + '<div class="seg" style="background:var(--s4);left:' + (50 + p3) + '%;width:' + p4 + '%"></div>'
+      + '</div></div>';
+  });
+  h += '<p class="hint">Garis tengah memisahkan penilaian kurang (kiri) dari penilaian baik (kanan).</p>';
+
+  /* Tabel angka — pendamping wajib bagi pembaca yang tak mengandalkan warna */
+  h += '<h3 class="sub">Tabel angka</h3><table><thead><tr><th>No</th><th>Aspek</th>'
+    + SKALA.map((s) => '<th>' + s + '</th>').join("")
+    + '<th>Rata-rata</th></tr></thead><tbody>';
+  ASPEK.forEach((teks, i) => {
+    const c = (dist[i] || [0, 0, 0, 0]).map(Number);
+    h += '<tr><td class="n">' + (i + 1) + '</td><td>' + esc(teks) + '</td>'
+      + c.map((x) => '<td class="n">' + x + '</td>').join("")
+      + '<td class="n"><b>' + (nrr[i] || 0).toFixed(2) + '</b></td></tr>';
+  });
+  h += '</tbody></table></section>';
+
+  /* Saran */
+  if (saran.length) {
+    h += '<section class="card"><h3 class="sub">Saran dan masukan (' + saran.length + ')</h3>';
+    saran.forEach((s) => {
+      const tgl = s.waktu ? new Date(s.waktu).toLocaleDateString("id-ID",
+        { day: "2-digit", month: "short", year: "numeric" }) : "";
+      h += '<div class="saran"><p>' + esc(s.teks) + '</p><span>'
+        + esc(KATEGORI_LABEL[s.kategori] || s.kategori) + (tgl ? " · " + tgl : "") + '</span></div>';
+    });
+    h += '</section>';
+  }
+
+  h += '<button class="btn ghost" id="salinCsv">Salin data (CSV)</button>'
+    + '<button class="btn ghost" id="tutupRekap">Kembali ke kuesioner</button>';
+
+  box.innerHTML = h;
+
+  /* CSV untuk lampiran laporan */
+  csvTerakhir = "no;aspek;tidak_baik;kurang_baik;baik;sangat_baik;rata_rata\n"
+    + ASPEK.map((teks, i) => {
+        const c = (dist[i] || [0, 0, 0, 0]).map(Number);
+        return [i + 1, teks, c[0], c[1], c[2], c[3], (nrr[i] || 0).toFixed(2)].join(";");
+      }).join("\n")
+    + "\n\nresponden;" + n + "\nikm;" + d.ikm + "\nmutu;" + d.mutu;
+
+  $("salinCsv").addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(csvTerakhir);
+      alert("Data tersalin — tinggal tempel ke Excel.");
+    } catch {
+      prompt("Salin manual:", csvTerakhir);
+    }
+  });
+  $("tutupRekap").addEventListener("click", () => {
+    box.innerHTML = "";
+    document.getElementById("root").classList.remove("wide");
+    $("form").style.display = "block";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+
+  box.scrollIntoView({ behavior: "smooth" });
+}
+</script>
+</body>
+</html>
