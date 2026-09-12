@@ -376,7 +376,7 @@ export default function Landing() {
                     <div className="lp-stats">
                       <div className="lp-stat"><div className="lp-stat-n">{(stats.total ?? STAT_FALLBACK.total).toLocaleString("id-ID")}</div><div className="lp-stat-l">Total pengajuan SKPP</div></div>
                       <div className="lp-stat"><div className="lp-stat-n">{(stats.terbit ?? STAT_FALLBACK.terbit).toLocaleString("id-ID")}</div><div className="lp-stat-l">SKPP telah diterbitkan</div></div>
-                      <div className="lp-stat"><div className="lp-stat-n">{stats.hari}</div><div className="lp-stat-l">Hari kerja rata-rata proses</div></div>
+                      <div className="lp-stat"><div className="lp-stat-n">{stats.hari}</div><div className="lp-stat-l">Hari rata-rata proses</div></div>
                       <div className="lp-stat"><div className="lp-stat-n">24/7</div><div className="lp-stat-l">Akses pengajuan &amp; pelacakan daring</div></div>
                     </div>
                   </div>
