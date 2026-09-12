@@ -53,6 +53,16 @@ export function RegulasiDetail({ rd, tab, onTab }) {
               <IcoDownload size={16} /> Buka PDF Regulasi
             </button>
           )}
+          {rd.pdfDraft && (
+            <>
+              <button type="button" className="lp-btn lp-btn-secondary lp-btn-md" style={{ width: "100%" }} onClick={() => bukaPdf(rd.pdfDraft, rd.pdfDraftLabel || "draft SOP")}>
+                <IcoDownload size={16} /> {rd.pdfDraftLabel || "Buka Draft SOP"}
+              </button>
+              <p style={{ margin: "-4px 0 0", fontSize: 12.5, lineHeight: 1.5, color: "var(--lp-grey-600)" }}>
+                Draft penyempurnaan prosedur — belum ditetapkan, disajikan sebagai bahan rujukan.
+              </p>
+            </>
+          )}
           {rd.jdihUrl && (
             <button type="button" className="lp-btn lp-btn-secondary lp-btn-md" style={{ width: "100%" }} onClick={() => bukaTautan(rd.jdihUrl, rd.jdih)}>
               <IcoExternal size={16} /> Lihat pada {rd.jdih || "sumber resmi"}

@@ -10,6 +10,8 @@ const PANDUAN_BUCKET = `${SUPABASE_URL}/storage/v1/object/public/panduan`;
 // Dua slot untuk admin (tab "Unduh"):
 //   pdf     -> berkas PDF di folder public/regulasi/ (taruh filenya, lihat
 //              public/regulasi/README.txt). Tombol "Buka PDF Regulasi".
+//   pdfDraft -> berkas PDF draft penyempurnaan SOP (opsional). Muncul sebagai
+//              tombol tambahan di tab "Unduh", label lewat pdfDraftLabel.
 //   jdihUrl -> tempel URL halaman JDIH peraturan ini (mis.
 //              "https://jdih.nttprov.go.id/..."). Tombol "Lihat JDIH".
 //              Kosongkan bila belum ada -> tombol memberi tahu belum tersedia.
@@ -112,7 +114,8 @@ export const REGULASI = [
       { k: "Lokasi", v: "Pemerintah Provinsi Nusa Tenggara Timur" },
     ],
     jdihUrl: "https://peraturan.bpk.go.id/Details/284070/pergub-prov-nusa-tenggara-timur-no-68-tahun-2", jdih: "JDIH Provinsi NTT", links: true },
-  { kode: "SOP Badan Keuangan Daerah Provinsi NTT 61/2024", pdf: "/regulasi/sop-61-2024.pdf", judul: "Standar Operasional Prosedur Nomor 61 Tahun 2024", deskripsi: "Pedoman operasional pengajuan dan penerbitan SKPP.",
+  { kode: "SOP Badan Keuangan Daerah Provinsi NTT 61/2024", pdf: "/regulasi/sop-61-2024.pdf",
+    pdfDraft: "/regulasi/draft-sop-skpp-2026.pdf", pdfDraftLabel: "Buka Draft SOP SKPP (Penyempurnaan)", judul: "Standar Operasional Prosedur Nomor 61 Tahun 2024", deskripsi: "Pedoman operasional pengajuan dan penerbitan SKPP.",
     ringkasan: "Standar Operasional Prosedur ini mengatur tahapan teknis layanan SKPP di Badan Keuangan Daerah Provinsi Nusa Tenggara Timur — mulai dari pengajuan dan verifikasi berkas, penerbitan, hingga penyampaian dokumen kepada pemohon. SOP ini menerjemahkan ketentuan pada peraturan di atasnya menjadi langkah kerja yang konkret dan seragam sehingga setiap permohonan SKPP diproses melalui alur yang sama dan dapat dipantau.",
     rows: [
       { l: "Pengajuan SKPP", s: "Pemohon menyampaikan dokumen persyaratan kepada Badan Keuangan Daerah Provinsi NTT.", r: "Menjadi awal proses penerbitan SKPP." },

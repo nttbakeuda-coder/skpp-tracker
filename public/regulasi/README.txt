@@ -13,6 +13,8 @@ Nama berkas WAJIB sama persis (huruf kecil semua, tanpa spasi):
   permendagri-77-2020.pdf  -> Permendagri 77/2020
   pergub-ntt-68-2023.pdf   -> Pergub NTT 68/2023
   sop-61-2024.pdf          -> SOP 61/2024 (Pedoman operasional SKPP)
+  draft-sop-skpp-2026.pdf  -> Draft penyempurnaan SOP SKPP (tombol tambahan
+                              pada tab Unduh entri SOP 61/2024)
 
 Contoh: letakkan file di public/regulasi/uu-20-2023.pdf
 Berkas akan diakses lewat URL /regulasi/uu-20-2023.pdf
